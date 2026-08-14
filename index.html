@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080808" />
+    <meta
+      name="description"
+      content="DEATH REJECTED — a fast survival shooter prototype set in a dead mall in purgatory."
+    />
+    <title>DEATH REJECTED</title>
+  </head>
+  <body>
+    <main id="game-shell" aria-label="DEATH REJECTED browser game">
+      <canvas id="game-canvas" aria-label="First-person game view"></canvas>
+      <div id="screen-fx" aria-hidden="true"></div>
+
+      <section id="landing" class="overlay overlay--visible" aria-labelledby="game-title">
+        <div class="title-lockup">
+          <span class="eyebrow">PURGATORY // ATTEMPT <b id="attempt-number">001</b></span>
+          <h1 id="game-title">DEATH<br /><i>REJECTED</i></h1>
+          <p>A dead mall. An endless Blood Moon. One more attempt.</p>
+          <button id="begin-button" class="primary-button" type="button">BEGIN AGAIN</button>
+          <div class="control-strip" aria-label="Primary controls">
+            <span><kbd>WASD</kbd> MOVE</span><span><kbd>SHIFT</kbd> SPRINT</span>
+            <span><kbd>C</kbd> SLIDE</span><span><kbd>SPACE</kbd> JUMP</span>
+            <span><kbd>LMB</kbd> FIRE</span><span><kbd>F</kbd> KNIFE</span>
+            <span><kbd>E</kbd> SHOP</span><span><kbd>ESC</kbd> RELEASE</span>
+          </div>
+          <small>Headphones recommended · click to capture mouse</small>
+        </div>
+      </section>
+
+      <section id="pause-screen" class="overlay" aria-label="Game paused">
+        <div class="pause-card">
+          <span class="eyebrow">THE MALL IS WAITING</span>
+          <h2>PAUSED</h2>
+          <p>Click to return to the Moon. Press Esc to release the mouse.</p>
+          <button id="resume-button" class="primary-button" type="button">RETURN</button>
+        </div>
+      </section>
+
+      <section id="death-screen" class="overlay death-overlay" aria-live="assertive">
+        <p id="death-kicker">PURGATORY REFUSES YOU</p>
+        <h2>DEATH<br /><i>REJECTED</i></h2>
+      </section>
+
+      <section id="tally-screen" class="overlay tally-overlay" aria-labelledby="tally-title">
+        <div class="tally-scene">
+          <div class="hunter-silhouette" aria-hidden="true">
+            <span class="hunter-hair"></span><span class="hunter-eye hunter-eye--left"></span>
+            <span class="hunter-eye hunter-eye--right"></span><span class="hunter-coat"></span>
+          </div>
+          <div class="tally-wall">
+            <span class="eyebrow">THE SERVICE HALL // NO EXIT</span>
+            <h2 id="tally-title">ANOTHER FAILURE REMEMBERED</h2>
+            <div id="tally-marks" class="tally-marks" aria-label="Attempt tally marks"></div>
+            <p id="run-summary">Moon reached — I</p>
+            <button id="restart-button" class="primary-button" type="button">RISE AGAIN</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="hud" class="hud hud--hidden" aria-live="polite">
+        <header class="moon-readout">
+          <span id="moon-state">BLOOD MOON</span>
+          <strong id="moon-label">MOON I</strong>
+          <small id="enemy-count">0 REMAIN</small>
+        </header>
+
+        <div id="announcement" class="announcement" aria-hidden="true"></div>
+        <div id="reward-feed" class="reward-feed" aria-live="polite"></div>
+        <div id="interact-prompt" class="interact-prompt" aria-hidden="true"></div>
+        <div id="hit-marker" class="hit-marker" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+
+        <aside class="hud-panel blood-panel" aria-label="Blood health">
+          <canvas id="portrait" width="64" height="64"></canvas>
+          <div class="blood-info">
+            <span>BLOOD</span><strong id="blood-value">100</strong>
+            <div class="blood-track"><i id="blood-fill"></i></div>
+          </div>
+        </aside>
+
+        <aside class="marks-panel" aria-label="Marks currency">
+          <span>MARKS</span><strong id="marks-value">0000</strong>
+        </aside>
+
+        <aside class="hud-panel ammo-panel" aria-label="Weapon and ammunition">
+          <span id="weapon-name">BLACKTHORN .45</span>
+          <strong><b id="ammo-value">12</b><i>/</i><small id="reserve-value">60</small></strong>
+          <em id="reload-state">1 · PISTOL</em>
+        </aside>
+
+        <footer class="status-ribbon">
+          <span id="best-moon">BEST MOON I</span><span id="speed-state">READY</span>
+        </footer>
+      </div>
+
+      <div id="damage-flash" aria-hidden="true"></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
