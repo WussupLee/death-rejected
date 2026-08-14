@@ -17,6 +17,7 @@ export class Environment {
     this.scene.add(this.group);
     this.buildFloor();
     this.buildArchitecture();
+    this.buildBloodMoon();
     this.buildFountain();
     this.buildShop();
     this.buildSpawnPoints();
@@ -42,6 +43,19 @@ export class Environment {
 
   distanceToShop(position: THREE.Vector3): number {
     return Math.hypot(position.x - this.shopPosition.x, position.z - this.shopPosition.z);
+  }
+
+  findNearestOpen(position: THREE.Vector3, radius: number): THREE.Vector3 | null {
+    for (let ring = 0.7; ring <= 3.5; ring += 0.7) {
+      for (let index = 0; index < 16; index += 1) {
+        const angle = (index / 16) * Math.PI * 2;
+        const candidate = position.clone();
+        candidate.x += Math.cos(angle) * ring;
+        candidate.z += Math.sin(angle) * ring;
+        if (!this.isBlocked(candidate, radius)) return candidate;
+      }
+    }
+    return null;
   }
 
   private buildFloor(): void {
@@ -204,7 +218,7 @@ export class Environment {
 
   private addSkylight(): void {
     const frame = new THREE.MeshStandardMaterial({ color: 0x18201e, metalness: 0.8, roughness: 0.35 });
-    const glass = new THREE.MeshPhysicalMaterial({ color: 0x9bd6cf, transparent: true, opacity: 0.13, roughness: 0.22 });
+    const glass = new THREE.MeshPhysicalMaterial({ color: 0x9bd6cf, transparent: true, opacity: 0.13, roughness: 0.22, depthWrite: false });
     const skylight = new THREE.Mesh(new THREE.BoxGeometry(31, 0.14, 11), glass);
     skylight.position.set(0, 12, -1);
     this.group.add(skylight);
@@ -218,6 +232,37 @@ export class Environment {
       beam.position.set(0, 12.1, z);
       this.group.add(beam);
     }
+  }
+
+  private buildBloodMoon(): void {
+    const moon = new THREE.Mesh(
+      new THREE.SphereGeometry(3.8, 28, 20),
+      new THREE.MeshBasicMaterial({ color: 0xd51524 }),
+    );
+    moon.position.set(0, 21.5, -2.5);
+    moon.name = "Blood Moon";
+    this.group.add(moon);
+
+    const glowCanvas = document.createElement("canvas");
+    glowCanvas.width = 256;
+    glowCanvas.height = 256;
+    const context = glowCanvas.getContext("2d")!;
+    const gradient = context.createRadialGradient(128, 128, 22, 128, 128, 128);
+    gradient.addColorStop(0, "rgba(255, 55, 65, 0.72)");
+    gradient.addColorStop(0.34, "rgba(210, 15, 32, 0.35)");
+    gradient.addColorStop(1, "rgba(90, 0, 12, 0)");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 256, 256);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(glowCanvas),
+      color: 0xff2636,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }));
+    glow.position.copy(moon.position);
+    glow.scale.set(14, 14, 1);
+    this.group.add(glow);
   }
 
   private buildFountain(): void {

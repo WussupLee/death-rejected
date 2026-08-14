@@ -83,7 +83,7 @@ export class PlayerController {
       this.slideTime -= delta;
       if (this.slideTime <= 0 || this.speed < 4.2) this.isSliding = false;
       if (hasInput && !this.isGrounded) this.applyAirControl(delta, PLAYER.sprintSpeed);
-      this.velocity.multiplyScalar(Math.exp(-1.25 * delta));
+      this.velocity.multiplyScalar(Math.exp(-0.72 * delta));
     } else if (this.isGrounded) {
       const targetSpeed = sprinting && forwardAmount > 0 ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
       if (hasInput) {
@@ -124,8 +124,9 @@ export class PlayerController {
     const direction = this.speed > 0.1
       ? this.velocity.clone().setY(0).normalize()
       : this.forward.clone();
-    this.velocity.x = direction.x * Math.max(this.speed, PLAYER.slideBoost);
-    this.velocity.z = direction.z * Math.max(this.speed, PLAYER.slideBoost);
+    const carriedSpeed = Math.max(this.speed * 1.08, PLAYER.slideBoost);
+    this.velocity.x = direction.x * carriedSpeed;
+    this.velocity.z = direction.z * carriedSpeed;
   }
 
   jump(): void {
@@ -174,8 +175,8 @@ export class PlayerController {
     const desiredX = this.moveDirection.x * maxSpeed;
     const desiredZ = this.moveDirection.z * maxSpeed;
     const amount = PLAYER.airAcceleration * delta;
-    this.velocity.x = THREE.MathUtils.clamp(this.velocity.x + THREE.MathUtils.clamp(desiredX - this.velocity.x, -amount, amount), -16, 16);
-    this.velocity.z = THREE.MathUtils.clamp(this.velocity.z + THREE.MathUtils.clamp(desiredZ - this.velocity.z, -amount, amount), -16, 16);
+    this.velocity.x = THREE.MathUtils.clamp(this.velocity.x + THREE.MathUtils.clamp(desiredX - this.velocity.x, -amount, amount), -21, 21);
+    this.velocity.z = THREE.MathUtils.clamp(this.velocity.z + THREE.MathUtils.clamp(desiredZ - this.velocity.z, -amount, amount), -21, 21);
   }
 
   private moveWithCollision(delta: number): void {

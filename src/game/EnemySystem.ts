@@ -10,6 +10,8 @@ interface EnemyRuntime extends EnemyTarget {
   attackCooldown: number;
   hurtFlash: number;
   leapCooldown: number;
+  blockedTime: number;
+  avoidanceSign: number;
   phase: number;
   materials: THREE.MeshStandardMaterial[];
 }
@@ -49,6 +51,8 @@ export class EnemySystem {
     enemy.attackCooldown = randomRange(0.3, 0.8);
     enemy.leapCooldown = randomRange(1.4, 3.3);
     enemy.hurtFlash = 0;
+    enemy.blockedTime = 0;
+    enemy.avoidanceSign = Math.random() < 0.5 ? -1 : 1;
     enemy.phase = randomRange(0, Math.PI * 2);
     enemy.alive = true;
     enemy.attacking = false;
@@ -87,15 +91,17 @@ export class EnemySystem {
 
       if (distance > 1.12) {
         const separation = this.getSeparation(enemy);
-        const next = enemy.position.clone();
-        next.x += (directionX * moveSpeed + separation.x) * delta;
-        next.z += (directionZ * moveSpeed + separation.z) * delta;
-        if (!this.environment.isBlocked(next, enemy.radius)) enemy.position.copy(next);
-        else {
-          const alternate = enemy.position.clone();
-          alternate.x += directionZ * moveSpeed * delta;
-          alternate.z -= directionX * moveSpeed * delta;
-          if (!this.environment.isBlocked(alternate, enemy.radius)) enemy.position.copy(alternate);
+        const moved = this.moveEnemy(enemy, directionX, directionZ, moveSpeed, separation, delta);
+        if (moved) {
+          enemy.blockedTime = Math.max(0, enemy.blockedTime - delta * 2);
+        } else {
+          enemy.blockedTime += delta;
+          if (enemy.blockedTime > 0.65 && enemy.blockedTime - delta <= 0.65) enemy.avoidanceSign *= -1;
+          if (enemy.blockedTime > 1.4) {
+            const openPosition = this.environment.findNearestOpen(enemy.position, enemy.radius);
+            if (openPosition) enemy.position.copy(openPosition);
+            enemy.blockedTime = 0;
+          }
         }
       }
 
@@ -112,7 +118,7 @@ export class EnemySystem {
     }
   }
 
-  hitScan(origin: THREE.Vector3, direction: THREE.Vector3, damage: number, range: number): { enemy: EnemyTarget; killed: boolean; distance: number } | null {
+  hitScan(origin: THREE.Vector3, direction: THREE.Vector3, damage: number, range: number): { enemy: EnemyTarget; killed: boolean; distance: number; headshot: boolean } | null {
     this.liveRoots.length = 0;
     for (const enemy of this.pool) if (enemy.alive) this.liveRoots.push(enemy.root);
     this.raycaster.set(origin, direction);
@@ -123,8 +129,9 @@ export class EnemySystem {
       if (id == null) continue;
       const enemy = this.pool[id];
       if (!enemy?.alive) continue;
-      const killed = this.damageEnemy(enemy, damage, intersection.distance, false);
-      return { enemy, killed, distance: intersection.distance };
+      const headshot = intersection.object.userData.hitZone === "head";
+      const killed = this.damageEnemy(enemy, damage * (headshot ? 2.25 : 1), intersection.distance, false);
+      return { enemy, killed, distance: intersection.distance, headshot };
     }
     return null;
   }
@@ -187,6 +194,31 @@ export class EnemySystem {
     return result;
   }
 
+  private moveEnemy(
+    enemy: EnemyRuntime,
+    directionX: number,
+    directionZ: number,
+    moveSpeed: number,
+    separation: THREE.Vector3,
+    delta: number,
+  ): boolean {
+    const angles = [0, 0.55, -0.55, 1.05, -1.05, 1.57, -1.57, 2.2, -2.2];
+    for (const rawAngle of angles) {
+      const angle = rawAngle * enemy.avoidanceSign;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const steeredX = directionX * cos - directionZ * sin;
+      const steeredZ = directionX * sin + directionZ * cos;
+      const next = enemy.position.clone();
+      next.x += (steeredX * moveSpeed + separation.x) * delta;
+      next.z += (steeredZ * moveSpeed + separation.z) * delta;
+      if (this.environment.isBlocked(next, enemy.radius)) continue;
+      enemy.position.copy(next);
+      return true;
+    }
+    return false;
+  }
+
   private createEnemy(id: number): EnemyRuntime {
     const root = new THREE.Group();
     root.visible = false;
@@ -213,12 +245,16 @@ export class EnemySystem {
       return part;
     };
     addPart(new THREE.CapsuleGeometry(0.42, 0.95, 3, 7), 0, 0, 1.25, 0);
-    addPart(new THREE.IcosahedronGeometry(0.38, 0), 1, 0, 2.18, 0);
+    const head = addPart(new THREE.IcosahedronGeometry(0.38, 0), 1, 0, 2.18, 0);
+    head.userData.hitZone = "head";
     addPart(new THREE.CapsuleGeometry(0.13, 0.8, 2, 5), 0, -0.48, 1.28, 0, 0, -0.25);
     addPart(new THREE.CapsuleGeometry(0.13, 0.8, 2, 5), 0, 0.48, 1.28, 0, 0, 0.25);
     addPart(new THREE.CapsuleGeometry(0.15, 0.86, 2, 5), 0, -0.22, 0.45, 0, 0, 0.08);
     addPart(new THREE.CapsuleGeometry(0.15, 0.86, 2, 5), 0, 0.22, 0.45, 0, 0, -0.08);
-    for (const x of [-0.16, 0.16]) addPart(new THREE.SphereGeometry(0.055, 6, 4), 2, x, 2.23, -0.34);
+    for (const x of [-0.16, 0.16]) {
+      const eye = addPart(new THREE.SphereGeometry(0.055, 6, 4), 2, x, 2.23, -0.34);
+      eye.userData.hitZone = "head";
+    }
 
     return {
       id,
@@ -236,6 +272,8 @@ export class EnemySystem {
       attackCooldown: 0,
       hurtFlash: 0,
       leapCooldown: 0,
+      blockedTime: 0,
+      avoidanceSign: 1,
       phase: 0,
       materials,
     };

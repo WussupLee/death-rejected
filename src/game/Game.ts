@@ -50,9 +50,10 @@ export class Game implements GameEvents {
     this.player = new PlayerController(this.environment, this.canvas);
     this.scene.add(this.player.yaw);
     this.enemies = new EnemySystem(this.scene, this.environment, this);
-    this.weapons = new WeaponSystem(this.canvas, this.player, this.enemies, this.audio, (hit, heavy) => {
+    this.weapons = new WeaponSystem(this.canvas, this.player, this.enemies, this.audio, (hit, heavy, headshot) => {
       if (hit) this.ui.showHit(false);
       if (heavy) this.renderer.toneMappingExposure = 1.08;
+      if (headshot) this.ui.reward("HEADSHOT // 2.25X DAMAGE");
     });
     this.moon = new MoonManager(
       this.enemies,
@@ -257,10 +258,10 @@ export class Game implements GameEvents {
   }
 
   private buildLighting(): void {
-    const hemisphere = new THREE.HemisphereLight(0xb8d7d1, 0x100b0d, 1.55);
+    const hemisphere = new THREE.HemisphereLight(0xd9aaa4, 0x260108, 1.7);
     this.scene.add(hemisphere);
-    const moonlight = new THREE.DirectionalLight(0xb5d9d4, 2.2);
-    moonlight.position.set(-7, 18, 3);
+    const moonlight = new THREE.DirectionalLight(0xe04a50, 2.8);
+    moonlight.position.set(0, 21.5, -2.5);
     moonlight.castShadow = true;
     moonlight.shadow.mapSize.set(1024, 1024);
     moonlight.shadow.camera.left = -35;
@@ -268,6 +269,9 @@ export class Game implements GameEvents {
     moonlight.shadow.camera.top = 30;
     moonlight.shadow.camera.bottom = -30;
     this.scene.add(moonlight);
+    const bloodMoonGlow = new THREE.PointLight(0xff1d2f, 62, 62, 1.45);
+    bloodMoonGlow.position.set(0, 10.5, -2.5);
+    this.scene.add(bloodMoonGlow);
     const altarGlow = new THREE.PointLight(COLORS.blood, 28, 19, 1.7);
     altarGlow.position.set(0, 4, 0);
     this.scene.add(altarGlow);

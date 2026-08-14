@@ -11,13 +11,13 @@ export const WORLD = {
 export const PLAYER = {
   maxBlood: 100,
   walkSpeed: 7.2,
-  sprintSpeed: 11.4,
-  groundAcceleration: 44,
+  sprintSpeed: 14.6,
+  groundAcceleration: 52,
   airAcceleration: 13,
   groundFriction: 9,
   jumpSpeed: 9.2,
-  slideDuration: 0.72,
-  slideBoost: 13.2,
+  slideDuration: 0.92,
+  slideBoost: 16.8,
 } as const;
 
 export const MOON = {

@@ -35,6 +35,9 @@ const DEFINITIONS: Record<WeaponId, WeaponDefinition> = {
   },
 };
 
+const MELEE_DURATION = 0.42;
+const MELEE_RANGE = 3.15;
+
 export class WeaponSystem {
   readonly group = new THREE.Group();
   enabled = false;
@@ -48,6 +51,7 @@ export class WeaponSystem {
   private aimHeld = false;
   private fireCooldown = 0;
   private meleeCooldown = 0;
+  private meleeTimer = 0;
   private reloadTimer = 0;
   private reloading = false;
   private recoil = 0;
@@ -56,6 +60,7 @@ export class WeaponSystem {
   private readonly muzzle: THREE.PointLight;
   private readonly pistolModel = new THREE.Group();
   private readonly shotgunModel = new THREE.Group();
+  private readonly meleeModel = new THREE.Group();
   private readonly rayDirection = new THREE.Vector3();
   private readonly localDirection = new THREE.Vector3();
 
@@ -64,10 +69,11 @@ export class WeaponSystem {
     private readonly player: PlayerController,
     private readonly enemies: EnemySystem,
     private readonly audio: AudioManager,
-    private readonly onFireFeedback: (hit: boolean, heavy: boolean) => void,
+    private readonly onFireFeedback: (hit: boolean, heavy: boolean, headshot: boolean) => void,
   ) {
     this.group.position.set(0.36, -0.32, -0.62);
     this.player.camera.add(this.group);
+    this.player.camera.add(this.meleeModel);
     this.buildModels();
     this.muzzle = new THREE.PointLight(0xff7b38, 0, 5, 2);
     this.muzzle.position.set(0.1, 0, -1.1);
@@ -86,6 +92,9 @@ export class WeaponSystem {
     this.currentId = "pistol";
     this.fireCooldown = 0;
     this.meleeCooldown = 0;
+    this.meleeTimer = 0;
+    this.meleeModel.visible = false;
+    this.canvas.dataset.meleeRange = String(MELEE_RANGE);
     this.reloadTimer = 0;
     this.reloading = false;
     this.triggerHeld = false;
@@ -95,8 +104,21 @@ export class WeaponSystem {
   update(delta: number): void {
     this.fireCooldown = Math.max(0, this.fireCooldown - delta);
     this.meleeCooldown = Math.max(0, this.meleeCooldown - delta);
+    this.meleeTimer = Math.max(0, this.meleeTimer - delta);
     this.muzzleTimer = Math.max(0, this.muzzleTimer - delta);
     this.muzzle.intensity = this.muzzleTimer > 0 ? 22 : 0;
+
+    if (this.meleeTimer > 0) {
+      const progress = 1 - this.meleeTimer / MELEE_DURATION;
+      const slash = Math.sin(Math.min(1, progress) * Math.PI);
+      this.meleeModel.visible = true;
+      this.canvas.dataset.meleeActive = "true";
+      this.meleeModel.position.set(0.58 - slash * 0.7, -0.54 + slash * 0.2, -0.58 - slash * 0.42);
+      this.meleeModel.rotation.set(-0.38 - slash * 0.32, -0.18 - slash * 1.05, -0.28 - slash * 1.7);
+    } else {
+      this.meleeModel.visible = false;
+      this.canvas.dataset.meleeActive = "false";
+    }
 
     if (this.reloading) {
       this.reloadTimer -= delta;
@@ -128,11 +150,12 @@ export class WeaponSystem {
   knife(): void {
     if (!this.enabled || this.meleeCooldown > 0) return;
     this.meleeCooldown = 0.46;
+    this.meleeTimer = MELEE_DURATION;
     this.recoil = -0.65;
     this.audio.knife();
-    const result = this.enemies.melee(this.player.position, this.player.getViewDirection(), 68, 2.65);
+    const result = this.enemies.melee(this.player.position, this.player.getViewDirection(), 74, MELEE_RANGE);
     if (result) {
-      this.onFireFeedback(true, false);
+      this.onFireFeedback(true, false, false);
       this.player.addImpulse(this.player.getViewDirection(), 0.7);
     }
   }
@@ -201,6 +224,7 @@ export class WeaponSystem {
     }
 
     let hit = false;
+    let headshot = false;
     for (let pellet = 0; pellet < state.definition.pellets; pellet += 1) {
       this.localDirection.set(
         (Math.random() - 0.5) * state.definition.spread,
@@ -215,8 +239,9 @@ export class WeaponSystem {
         state.definition.range,
       );
       hit ||= result != null;
+      headshot ||= result?.headshot === true;
     }
-    this.onFireFeedback(hit, this.currentId === "shotgun");
+    this.onFireFeedback(hit, this.currentId === "shotgun", headshot);
     if (state.ammo === 0 && state.reserve > 0) window.setTimeout(() => this.reload(), 210);
   }
 
@@ -239,6 +264,8 @@ export class WeaponSystem {
     const steel = new THREE.MeshStandardMaterial({ color: 0x4e5552, roughness: 0.28, metalness: 0.9 });
     const red = new THREE.MeshStandardMaterial({ color: 0x5f0711, roughness: 0.45, metalness: 0.5, emissive: 0x180003 });
     const bone = new THREE.MeshStandardMaterial({ color: 0xb9aa90, roughness: 0.7 });
+    const glove = new THREE.MeshStandardMaterial({ color: 0x171315, roughness: 0.92 });
+    const blade = new THREE.MeshStandardMaterial({ color: 0xd5ddd9, roughness: 0.2, metalness: 0.92 });
 
     const pistolBody = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.2, 0.7), black);
     pistolBody.position.z = -0.2;
@@ -264,6 +291,24 @@ export class WeaponSystem {
     stock.rotation.x = -0.12;
     this.shotgunModel.add(shotgunBody, shotgunBarrel, pump, stock);
 
+    const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.52, 3, 7), glove);
+    forearm.rotation.x = Math.PI / 2;
+    forearm.position.set(0.08, -0.03, 0.22);
+    const fist = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.28), glove);
+    fist.position.z = -0.17;
+    const knifeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.3, 7), red);
+    knifeHandle.rotation.x = Math.PI / 2;
+    knifeHandle.position.z = -0.37;
+    const knifeBlade = new THREE.Mesh(new THREE.ConeGeometry(0.105, 0.62, 4), blade);
+    knifeBlade.rotation.x = -Math.PI / 2;
+    knifeBlade.rotation.z = Math.PI / 4;
+    knifeBlade.position.z = -0.78;
+    this.meleeModel.add(forearm, fist, knifeHandle, knifeBlade);
+    this.meleeModel.visible = false;
+    this.meleeModel.traverse((object) => {
+      if (object instanceof THREE.Mesh) object.castShadow = true;
+    });
+
     for (const model of [this.pistolModel, this.shotgunModel]) {
       model.traverse((object) => {
         if (object instanceof THREE.Mesh) object.castShadow = true;
@@ -286,7 +331,7 @@ export class WeaponSystem {
       if (event.repeat) return;
       if (event.code === "Digit1") this.switchTo("pistol");
       if (event.code === "Digit2") this.switchTo("shotgun");
-      if (event.code === "Digit3" || event.code === "KeyF" || event.code === "KeyQ") this.knife();
+      if (event.code === "KeyQ") this.knife();
       if (event.code === "KeyR") this.reload();
     });
     this.canvas.addEventListener("wheel", (event) => {
