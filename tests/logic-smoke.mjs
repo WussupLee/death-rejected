@@ -28,12 +28,21 @@ assert.match(weaponSource, /melee\(/);
 assert.match(weaponSource, /event\.code === "KeyQ"/);
 assert.match(weaponSource, /MELEE_RANGE = 3\.15/);
 assert.match(weaponSource, /meleeModel/);
+assert.match(weaponSource, /meleeHitPending/);
 assert.match(weaponSource, /purchaseShotgun\(\)/);
 
 const enemySource = await readFile(new URL("../src/game/EnemySystem.ts", import.meta.url), "utf8");
 assert.match(enemySource, /hitZone === "head"/);
 assert.match(enemySource, /headshot \? 2\.25 : 1/);
 assert.match(enemySource, /findNearestOpen/);
+assert.match(enemySource, /NavigationGrid/);
+
+const navigationSource = await readFile(new URL("../src/game/NavigationGrid.ts", import.meta.url), "utf8");
+assert.match(navigationSource, /findPath/);
+assert.match(navigationSource, /isBlocked/);
+
+const performanceSource = await readFile(new URL("../src/game/PerformanceGovernor.ts", import.meta.url), "utf8");
+assert.match(performanceSource, /"high" \| "balanced" \| "performance"/);
 
 const gameSource = await readFile(new URL("../src/game/Game.ts", import.meta.url), "utf8");
 for (const required of ["recordDeath", "showTally", "useShop", "requestPointerLock", "onMoonCleared"]) {

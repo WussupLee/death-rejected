@@ -17,6 +17,7 @@ export class Environment {
     this.scene.add(this.group);
     this.buildFloor();
     this.buildArchitecture();
+    this.buildAtriumDetails();
     this.buildBloodMoon();
     this.buildFountain();
     this.buildShop();
@@ -235,11 +236,30 @@ export class Environment {
   }
 
   private buildBloodMoon(): void {
+    const surface = document.createElement("canvas");
+    surface.width = 256;
+    surface.height = 256;
+    const surfaceContext = surface.getContext("2d")!;
+    const surfaceGradient = surfaceContext.createRadialGradient(92, 72, 15, 128, 128, 138);
+    surfaceGradient.addColorStop(0, "#ff5860");
+    surfaceGradient.addColorStop(0.38, "#d31829");
+    surfaceGradient.addColorStop(1, "#5b020d");
+    surfaceContext.fillStyle = surfaceGradient;
+    surfaceContext.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 56; i += 1) {
+      const radius = randomRange(3, 20);
+      surfaceContext.beginPath();
+      surfaceContext.arc(randomRange(18, 238), randomRange(18, 238), radius, 0, Math.PI * 2);
+      surfaceContext.fillStyle = `rgba(55, 0, 8, ${randomRange(0.08, 0.34)})`;
+      surfaceContext.fill();
+    }
+    const moonTexture = new THREE.CanvasTexture(surface);
+    moonTexture.colorSpace = THREE.SRGBColorSpace;
     const moon = new THREE.Mesh(
-      new THREE.SphereGeometry(3.8, 28, 20),
-      new THREE.MeshBasicMaterial({ color: 0xd51524 }),
+      new THREE.SphereGeometry(4.6, 32, 24),
+      new THREE.MeshBasicMaterial({ map: moonTexture, color: 0xff3340 }),
     );
-    moon.position.set(0, 21.5, -2.5);
+    moon.position.set(0, 20.5, -5.5);
     moon.name = "Blood Moon";
     this.group.add(moon);
 
@@ -261,8 +281,111 @@ export class Environment {
       blending: THREE.AdditiveBlending,
     }));
     glow.position.copy(moon.position);
-    glow.scale.set(14, 14, 1);
+    glow.scale.set(17, 17, 1);
     this.group.add(glow);
+  }
+
+  private buildAtriumDetails(): void {
+    const oxidized = new THREE.MeshStandardMaterial({ color: 0x26312d, roughness: 0.62, metalness: 0.46, flatShading: true });
+    const darkMetal = new THREE.MeshStandardMaterial({ color: 0x0c1110, roughness: 0.48, metalness: 0.72, flatShading: true });
+    const dirtyBone = new THREE.MeshStandardMaterial({ color: 0x81796d, roughness: 0.92, flatShading: true });
+    const redCloth = new THREE.MeshStandardMaterial({ color: 0x4a080f, roughness: 0.95, side: THREE.DoubleSide });
+
+    // Layered balcony fascia and upper service doors give the room a believable mall scale.
+    for (const side of [-1, 1]) {
+      const fascia = new THREE.Mesh(new THREE.BoxGeometry(57, 1.2, 0.48), dirtyBone);
+      fascia.position.set(0, 6.55, side * 18.55);
+      this.group.add(fascia);
+      for (let x = -24; x <= 24; x += 8) {
+        const upperDoor = new THREE.Mesh(new THREE.BoxGeometry(5.7, 3.8, 0.18), darkMetal);
+        upperDoor.position.set(x, 9.1, side * 20.05);
+        this.group.add(upperDoor);
+        const lintel = new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.18, 0.28), oxidized);
+        lintel.position.set(x, 11.06, side * 19.92);
+        this.group.add(lintel);
+      }
+    }
+
+    // Central hanging banners point the eye toward the moon without copying any reference signage.
+    for (const x of [-7.2, 7.2]) {
+      const banner = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 6.4, 1, 3), redCloth);
+      banner.position.set(x, 9.1, -4.8);
+      banner.rotation.y = x < 0 ? 0.08 : -0.08;
+      this.group.add(banner);
+      const sigil = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.055, 5, 16), new THREE.MeshBasicMaterial({ color: 0x9d2630 }));
+      sigil.position.set(x, 9.25, -4.76);
+      this.group.add(sigil);
+    }
+
+    // Period mall furniture, directory kiosk, trash cans and bench islands.
+    const benchSpecs: Array<[number, number, number]> = [[-12, -4, .2], [12, 4, -.25], [-13, 12, -.1], [14, -12, .15]];
+    for (const [x, z, angle] of benchSpecs) {
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.18, 0.62), dirtyBone);
+      seat.position.set(x, 0.62, z);
+      seat.rotation.y = angle;
+      seat.castShadow = true;
+      this.group.add(seat);
+      for (const offset of [-1.3, 1.3]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.62, 0.48), darkMetal);
+        leg.position.set(x + Math.cos(angle) * offset, 0.31, z - Math.sin(angle) * offset);
+        leg.rotation.y = angle;
+        this.group.add(leg);
+      }
+    }
+    const directory = new THREE.Group();
+    const directoryBody = new THREE.Mesh(new THREE.BoxGeometry(1.7, 3.9, 0.42), oxidized);
+    directoryBody.position.y = 1.95;
+    const directoryFace = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 2.3), new THREE.MeshBasicMaterial({ map: this.makeDirectoryTexture() }));
+    directoryFace.position.set(0, 2.35, -0.225);
+    directory.add(directoryBody, directoryFace);
+    directory.position.set(-19, 0, 2.5);
+    directory.rotation.y = -0.32;
+    this.group.add(directory);
+    this.boxes.push({ x: -19, z: 2.5, halfX: 1.1, halfZ: 0.75 });
+
+    // Broken roof frame adds the late-PS2 silhouette language seen from the combat floor.
+    for (let i = -4; i <= 4; i += 1) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 18), darkMetal);
+      rib.position.set(i * 4.2, 12.25 + Math.abs(i) * 0.1, -1.5);
+      rib.rotation.z = i % 3 === 0 ? i * 0.008 : 0;
+      this.group.add(rib);
+    }
+
+    // A restrained occult ring stains the fountain landmark instead of becoming glowing sci-fi trim.
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(5.2, 5.38, 48),
+      new THREE.MeshBasicMaterial({ color: 0x4e080f, transparent: true, opacity: 0.58, side: THREE.DoubleSide }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.018;
+    this.group.add(ring);
+  }
+
+  private makeDirectoryTexture(): THREE.CanvasTexture {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 384;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "#111716";
+    context.fillRect(0, 0, 256, 384);
+    context.strokeStyle = "#776e5d";
+    context.lineWidth = 5;
+    context.strokeRect(8, 8, 240, 368);
+    context.fillStyle = "#b9b09e";
+    context.font = "700 25px Arial Narrow";
+    context.textAlign = "center";
+    context.fillText("DIRECTORY", 128, 45);
+    context.font = "14px Arial";
+    context.textAlign = "left";
+    const entries = ["ATRIUM / YOU ARE HERE", "SANGUINE ARMS", "AFTERHOURS", "FOOD COURT", "SERVICE HALL", "NO EXIT"];
+    entries.forEach((entry, index) => {
+      context.fillStyle = index === 5 ? "#a31522" : "#777d73";
+      context.fillText(`${String(index + 1).padStart(2, "0")}  ${entry}`, 24, 95 + index * 42);
+      context.fillRect(22, 105 + index * 42, 208, 1);
+    });
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
   }
 
   private buildFountain(): void {

@@ -4,6 +4,7 @@ import { AudioManager } from "./AudioManager";
 import { EnemySystem } from "./EnemySystem";
 import { Environment } from "./Environment";
 import { MoonManager } from "./MoonManager";
+import { PerformanceGovernor } from "./PerformanceGovernor";
 import { PlayerController } from "./PlayerController";
 import { SaveManager } from "./SaveManager";
 import { UIManager } from "./UIManager";
@@ -23,6 +24,7 @@ export class Game implements GameEvents {
   private readonly ui = new UIManager();
   private readonly save = new SaveManager();
   private readonly canvas: HTMLCanvasElement;
+  private readonly performanceGovernor: PerformanceGovernor;
   private phase: GamePhase = "landing";
   private playPhase: "playing" | "intermission" = "playing";
   private blood: number = PLAYER.maxBlood;
@@ -43,6 +45,7 @@ export class Game implements GameEvents {
     this.renderer.toneMappingExposure = 0.95;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.performanceGovernor = new PerformanceGovernor(this.renderer);
 
     this.scene.background = new THREE.Color(0x060807);
     this.scene.fog = new THREE.FogExp2(0x080c0b, 0.018);
@@ -76,6 +79,7 @@ export class Game implements GameEvents {
         kills: this.kills,
         moon: this.moon.currentMoon,
         moonState: this.moon.state,
+        intensity: this.moon.intensity,
         enemiesRemaining: this.moon.remaining,
         attempts: this.save.data.attempts,
         bestMoon: this.save.data.bestMoon,
@@ -91,6 +95,7 @@ export class Game implements GameEvents {
           pitch: Number(this.player.lookPitch.toFixed(3)),
         },
         mouseMode: this.pointerLockAvailable ? "pointer-lock" : "preview-fallback",
+        quality: this.performanceGovernor.label,
       }),
     };
     this.renderer.setAnimationLoop(() => this.update());
@@ -132,6 +137,7 @@ export class Game implements GameEvents {
   private update(): void {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.ui.update(delta);
+    this.performanceGovernor.update(delta);
     this.audio.update();
     if (this.phase === "playing" || this.phase === "intermission") {
       this.player.update(delta);
@@ -343,6 +349,7 @@ export class Game implements GameEvents {
     const width = window.innerWidth;
     const height = window.innerHeight;
     this.renderer.setSize(width, height, false);
+    this.performanceGovernor.resize();
     this.player.camera.aspect = width / height;
     this.player.camera.updateProjectionMatrix();
   }

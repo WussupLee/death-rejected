@@ -5,6 +5,7 @@ import type { EnemySystem } from "./EnemySystem";
 import type { EnemyKind } from "./types";
 
 export type MoonState = "idle" | "opening" | "combat" | "intermission";
+export type CombatIntensity = "anticipation" | "build" | "peak" | "relief" | "cleanup";
 
 export class MoonManager {
   currentMoon = 1;
@@ -13,6 +14,7 @@ export class MoonManager {
   private quota = 0;
   private spawned = 0;
   private spawnTimer = 0;
+  private pressureClock = 0;
 
   constructor(
     private readonly enemies: EnemySystem,
@@ -28,6 +30,7 @@ export class MoonManager {
     this.quota = 0;
     this.spawned = 0;
     this.spawnTimer = 0;
+    this.pressureClock = 0;
     this.enemies.clear();
     this.audio.setCombat(false);
   }
@@ -55,11 +58,14 @@ export class MoonManager {
     }
 
     this.spawnTimer -= delta;
-    if (this.spawned < this.quota && this.spawnTimer <= 0) {
+    this.pressureClock += delta;
+    const maxAlive = Math.min(13, 4 + this.currentMoon * 2);
+    if (this.spawned < this.quota && this.spawnTimer <= 0 && this.enemies.activeCount < maxAlive) {
       const kind = this.chooseEnemyKind();
       if (this.enemies.spawn(kind, playerPosition)) {
         this.spawned += 1;
-        this.spawnTimer = MOON.spawnInterval * Math.max(0.52, 1 - this.currentMoon * 0.035);
+        const intensityScale = this.intensity === "peak" ? 0.55 : this.intensity === "relief" ? 1.55 : 1;
+        this.spawnTimer = MOON.spawnInterval * Math.max(0.5, 1 - this.currentMoon * 0.035) * intensityScale;
       }
     }
     if (this.spawned >= this.quota && this.enemies.activeCount === 0) this.clearMoon();
@@ -73,11 +79,22 @@ export class MoonManager {
     return Math.max(0, Math.ceil(this.timer));
   }
 
+  get intensity(): CombatIntensity {
+    if (this.state !== "combat") return "anticipation";
+    if (this.spawned >= this.quota) return "cleanup";
+    const cycle = this.pressureClock % 17;
+    if (cycle < 3.2) return "anticipation";
+    if (cycle < 8.5) return "build";
+    if (cycle < 13.2) return "peak";
+    return "relief";
+  }
+
   private beginCombat(): void {
     this.state = "combat";
     this.quota = Math.min(27, 5 + this.currentMoon * 3);
     this.spawned = 0;
     this.spawnTimer = 0.2;
+    this.pressureClock = 0;
     this.enemies.setMoon(this.currentMoon);
     this.audio.setCombat(true);
     this.audio.moon();

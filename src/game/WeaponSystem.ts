@@ -52,6 +52,7 @@ export class WeaponSystem {
   private fireCooldown = 0;
   private meleeCooldown = 0;
   private meleeTimer = 0;
+  private meleeHitPending = false;
   private reloadTimer = 0;
   private reloading = false;
   private recoil = 0;
@@ -93,6 +94,7 @@ export class WeaponSystem {
     this.fireCooldown = 0;
     this.meleeCooldown = 0;
     this.meleeTimer = 0;
+    this.meleeHitPending = false;
     this.meleeModel.visible = false;
     this.canvas.dataset.meleeRange = String(MELEE_RANGE);
     this.reloadTimer = 0;
@@ -115,6 +117,15 @@ export class WeaponSystem {
       this.canvas.dataset.meleeActive = "true";
       this.meleeModel.position.set(0.58 - slash * 0.7, -0.54 + slash * 0.2, -0.58 - slash * 0.42);
       this.meleeModel.rotation.set(-0.38 - slash * 0.32, -0.18 - slash * 1.05, -0.28 - slash * 1.7);
+      if (this.meleeHitPending && progress >= 0.31) {
+        this.meleeHitPending = false;
+        const direction = this.player.getViewDirection();
+        const result = this.enemies.melee(this.player.position, direction, 74, MELEE_RANGE);
+        if (result) {
+          this.onFireFeedback(true, false, false);
+          this.player.addImpulse(direction, 0.7);
+        }
+      }
     } else {
       this.meleeModel.visible = false;
       this.canvas.dataset.meleeActive = "false";
@@ -151,13 +162,9 @@ export class WeaponSystem {
     if (!this.enabled || this.meleeCooldown > 0) return;
     this.meleeCooldown = 0.46;
     this.meleeTimer = MELEE_DURATION;
+    this.meleeHitPending = true;
     this.recoil = -0.65;
     this.audio.knife();
-    const result = this.enemies.melee(this.player.position, this.player.getViewDirection(), 74, MELEE_RANGE);
-    if (result) {
-      this.onFireFeedback(true, false, false);
-      this.player.addImpulse(this.player.getViewDirection(), 0.7);
-    }
   }
 
   switchTo(id: WeaponId): void {

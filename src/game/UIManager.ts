@@ -21,9 +21,7 @@ export class UIManager {
   readonly resumeButton = this.button("resume-button");
   readonly restartButton = this.button("restart-button");
 
-  constructor() {
-    this.drawPortrait();
-  }
+  constructor() {}
 
   update(delta: number): void {
     this.announcementTimer -= delta;
@@ -127,39 +125,6 @@ export class UIManager {
       container.appendChild(mark);
     }
     this.get("run-summary").textContent = `MOON ${toRoman(reachedMoon)} // ${kills} KILLS // ATTEMPT ${String(attempts).padStart(3, "0")}`;
-  }
-
-  private drawPortrait(): void {
-    const canvas = this.get("portrait") as HTMLCanvasElement;
-    const context = canvas.getContext("2d")!;
-    context.imageSmoothingEnabled = false;
-    context.fillStyle = "#0b0b0b";
-    context.fillRect(0, 0, 64, 64);
-    context.fillStyle = "#20191a";
-    context.fillRect(8, 10, 48, 54);
-    context.fillStyle = "#2b1918";
-    context.fillRect(14, 17, 36, 39);
-    context.fillStyle = "#181313";
-    context.fillRect(7, 11, 10, 28);
-    context.fillRect(15, 6, 10, 17);
-    context.fillRect(24, 4, 10, 16);
-    context.fillRect(35, 7, 13, 17);
-    context.fillRect(47, 13, 8, 27);
-    context.fillStyle = "#ddd7c8";
-    context.fillRect(18, 27, 9, 4);
-    context.fillRect(38, 27, 9, 4);
-    context.fillStyle = "#fff";
-    context.fillRect(20, 27, 5, 3);
-    context.fillRect(40, 27, 5, 3);
-    context.fillStyle = "#090909";
-    context.fillRect(28, 42, 10, 6);
-    context.fillRect(30, 49, 7, 4);
-    context.strokeStyle = "#8e101d";
-    context.lineWidth = 2;
-    context.beginPath(); context.moveTo(15, 32); context.lineTo(24, 38); context.stroke();
-    context.beginPath(); context.moveTo(45, 33); context.lineTo(39, 40); context.stroke();
-    context.fillStyle = "#b29b70";
-    context.fillRect(12, 55, 40, 3);
   }
 
   private get(id: string): HTMLElement {
