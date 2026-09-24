@@ -10,6 +10,7 @@ export class PlayerController {
   readonly yaw = new THREE.Object3D();
   readonly pitch = new THREE.Object3D();
   enabled = false;
+  sensitivity = 1;
   fallbackLookEnabled = false;
   isGrounded = true;
   isSliding = false;
@@ -40,11 +41,12 @@ export class PlayerController {
   }
 
   reset(): void {
-    this.position.set(-10, 0, 7);
+    this.clearInput();
+    this.position.set(0, 0, 15);
     this.velocity.set(0, 0, 0);
     this.verticalSpeed = 0;
-    this.yaw.rotation.y = -0.55;
-    this.pitch.rotation.x = 0;
+    this.yaw.rotation.y = 0;
+    this.pitch.rotation.x = 0.12;
     this.isGrounded = true;
     this.isSliding = false;
     this.isCrouching = false;
@@ -59,22 +61,40 @@ export class PlayerController {
       return;
     }
 
-    if (this.fallbackLookEnabled && (this.fallbackEdgeX !== 0 || this.fallbackEdgeY !== 0)) {
+    if (
+      this.fallbackLookEnabled &&
+      (this.fallbackEdgeX !== 0 || this.fallbackEdgeY !== 0)
+    ) {
       this.yaw.rotation.y -= this.fallbackEdgeX * delta * 2.65;
       this.pitch.rotation.x -= this.fallbackEdgeY * delta * 2.1;
-      this.pitch.rotation.x = THREE.MathUtils.clamp(this.pitch.rotation.x, -1.48, 1.48);
+      this.pitch.rotation.x = THREE.MathUtils.clamp(
+        this.pitch.rotation.x,
+        -1.48,
+        1.48,
+      );
       this.canvas.dataset.lookYaw = this.lookYaw.toFixed(3);
       this.canvas.dataset.lookPitch = this.lookPitch.toFixed(3);
     }
 
-    const forwardAmount = (this.isDown("KeyW") ? 1 : 0) - (this.isDown("KeyS") ? 1 : 0);
-    const sideAmount = (this.isDown("KeyD") ? 1 : 0) - (this.isDown("KeyA") ? 1 : 0);
+    const forwardAmount =
+      (this.isDown("KeyW") ? 1 : 0) - (this.isDown("KeyS") ? 1 : 0);
+    const sideAmount =
+      (this.isDown("KeyD") ? 1 : 0) - (this.isDown("KeyA") ? 1 : 0);
     const hasInput = forwardAmount !== 0 || sideAmount !== 0;
     const sprinting = this.isDown("ShiftLeft") || this.isDown("ShiftRight");
 
-    this.forward.set(-Math.sin(this.yaw.rotation.y), 0, -Math.cos(this.yaw.rotation.y));
-    this.right.set(Math.cos(this.yaw.rotation.y), 0, -Math.sin(this.yaw.rotation.y));
-    this.moveDirection.set(0, 0, 0)
+    this.forward.set(
+      -Math.sin(this.yaw.rotation.y),
+      0,
+      -Math.cos(this.yaw.rotation.y),
+    );
+    this.right.set(
+      Math.cos(this.yaw.rotation.y),
+      0,
+      -Math.sin(this.yaw.rotation.y),
+    );
+    this.moveDirection
+      .set(0, 0, 0)
       .addScaledVector(this.forward, forwardAmount)
       .addScaledVector(this.right, sideAmount);
     if (this.moveDirection.lengthSq() > 1) this.moveDirection.normalize();
@@ -82,48 +102,87 @@ export class PlayerController {
     if (this.isSliding) {
       this.slideTime -= delta;
       if (this.slideTime <= 0 || this.speed < 4.2) this.isSliding = false;
-      if (hasInput && !this.isGrounded) this.applyAirControl(delta, PLAYER.sprintSpeed);
+      if (hasInput && !this.isGrounded)
+        this.applyAirControl(delta, PLAYER.sprintSpeed);
       this.velocity.multiplyScalar(Math.exp(-0.72 * delta));
     } else if (this.isGrounded) {
-      const targetSpeed = sprinting && forwardAmount > 0 ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
+      const crouching =
+        this.isDown("KeyC") ||
+        this.isDown("ControlLeft") ||
+        this.isDown("ControlRight");
+      const targetSpeed = crouching
+        ? 3.4
+        : sprinting && forwardAmount > 0
+          ? PLAYER.sprintSpeed
+          : PLAYER.walkSpeed;
       if (hasInput) {
         const desiredX = this.moveDirection.x * targetSpeed;
         const desiredZ = this.moveDirection.z * targetSpeed;
-        this.velocity.x = damp(this.velocity.x, desiredX, PLAYER.groundAcceleration / Math.max(targetSpeed, 1), delta);
-        this.velocity.z = damp(this.velocity.z, desiredZ, PLAYER.groundAcceleration / Math.max(targetSpeed, 1), delta);
+        this.velocity.x = damp(
+          this.velocity.x,
+          desiredX,
+          PLAYER.groundAcceleration / Math.max(targetSpeed, 1),
+          delta,
+        );
+        this.velocity.z = damp(
+          this.velocity.z,
+          desiredZ,
+          PLAYER.groundAcceleration / Math.max(targetSpeed, 1),
+          delta,
+        );
       } else {
         const friction = Math.exp(-PLAYER.groundFriction * delta);
         this.velocity.x *= friction;
         this.velocity.z *= friction;
       }
     } else if (hasInput) {
-      this.applyAirControl(delta, sprinting ? PLAYER.sprintSpeed : PLAYER.walkSpeed);
+      this.applyAirControl(
+        delta,
+        sprinting ? PLAYER.sprintSpeed : PLAYER.walkSpeed,
+      );
     }
 
+    const previousFloor = this.environment.floorAt(this.position);
+    this.moveWithCollision(delta);
+    const floor = this.environment.floorAt(this.position);
+    if (this.isGrounded && Math.abs(floor - previousFloor) < 0.7)
+      this.position.y = floor;
     this.verticalSpeed -= WORLD.gravity * delta;
     this.position.y += this.verticalSpeed * delta;
-    if (this.position.y <= WORLD.floorY) {
-      this.position.y = WORLD.floorY;
+    if (this.position.y <= floor) {
+      this.position.y = floor;
       this.verticalSpeed = 0;
       this.isGrounded = true;
     } else {
       this.isGrounded = false;
     }
 
-    this.moveWithCollision(delta);
-    this.isCrouching = this.isDown("ControlLeft") || this.isDown("ControlRight") || this.isDown("KeyC");
-    const targetEye = this.isSliding || this.isCrouching ? WORLD.crouchingHeight : WORLD.standingHeight;
-    this.eyeHeight = damp(this.eyeHeight, targetEye, this.isSliding ? 22 : 13, delta);
+    this.isCrouching =
+      this.isDown("ControlLeft") ||
+      this.isDown("ControlRight") ||
+      this.isDown("KeyC");
+    const targetEye =
+      this.isSliding || this.isCrouching
+        ? WORLD.crouchingHeight
+        : WORLD.standingHeight;
+    this.eyeHeight = damp(
+      this.eyeHeight,
+      targetEye,
+      this.isSliding ? 22 : 13,
+      delta,
+    );
     this.syncRig(delta);
   }
 
   startSlide(): void {
-    if (!this.enabled || !this.isGrounded || this.isSliding || this.speed < 6.1) return;
+    if (!this.enabled || !this.isGrounded || this.isSliding || this.speed < 6.1)
+      return;
     this.isSliding = true;
     this.slideTime = PLAYER.slideDuration;
-    const direction = this.speed > 0.1
-      ? this.velocity.clone().setY(0).normalize()
-      : this.forward.clone();
+    const direction =
+      this.speed > 0.1
+        ? this.velocity.clone().setY(0).normalize()
+        : this.forward.clone();
     const carriedSpeed = Math.max(this.speed * 1.08, PLAYER.slideBoost);
     this.velocity.x = direction.x * carriedSpeed;
     this.velocity.z = direction.z * carriedSpeed;
@@ -132,7 +191,7 @@ export class PlayerController {
   jump(): void {
     if (!this.enabled || !this.isGrounded) return;
     this.verticalSpeed = PLAYER.jumpSpeed;
-    this.position.y = 0.025;
+    this.position.y += 0.025;
     this.isGrounded = false;
     if (this.isSliding) {
       const boost = Math.max(this.speed, PLAYER.slideBoost * 1.03);
@@ -144,7 +203,10 @@ export class PlayerController {
   }
 
   addImpulse(direction: THREE.Vector3, amount: number): void {
-    this.velocity.addScaledVector(direction.clone().setY(0).normalize(), amount);
+    this.velocity.addScaledVector(
+      direction.clone().setY(0).normalize(),
+      amount,
+    );
   }
 
   addShake(strength: number): void {
@@ -172,11 +234,14 @@ export class PlayerController {
   }
 
   private applyAirControl(delta: number, maxSpeed: number): void {
-    const desiredX = this.moveDirection.x * maxSpeed;
-    const desiredZ = this.moveDirection.z * maxSpeed;
-    const amount = PLAYER.airAcceleration * delta;
-    this.velocity.x = THREE.MathUtils.clamp(this.velocity.x + THREE.MathUtils.clamp(desiredX - this.velocity.x, -amount, amount), -21, 21);
-    this.velocity.z = THREE.MathUtils.clamp(this.velocity.z + THREE.MathUtils.clamp(desiredZ - this.velocity.z, -amount, amount), -21, 21);
+    // Accelerate only along the wish direction: jumping never brakes carried slide speed.
+    const along = this.velocity.dot(this.moveDirection);
+    const acceleration = Math.min(
+      Math.max(0, maxSpeed - along),
+      PLAYER.airAcceleration * delta,
+    );
+    this.velocity.addScaledVector(this.moveDirection, acceleration);
+    if (this.speed > 23) this.velocity.multiplyScalar(23 / this.speed);
   }
 
   private moveWithCollision(delta: number): void {
@@ -184,23 +249,42 @@ export class PlayerController {
     const nextX = this.position.clone();
     nextX.x += this.velocity.x * delta;
     if (!this.environment.isBlocked(nextX, radius)) this.position.x = nextX.x;
-    else this.velocity.x *= -0.08;
+    else this.velocity.x = 0;
 
     const nextZ = this.position.clone();
     nextZ.z += this.velocity.z * delta;
     if (!this.environment.isBlocked(nextZ, radius)) this.position.z = nextZ.z;
-    else this.velocity.z *= -0.08;
+    else this.velocity.z = 0;
   }
 
   private syncRig(delta: number): void {
     const moving = this.speed > 0.7 && this.isGrounded && this.enabled;
-    if (moving) this.bobTime += delta * (this.isSliding ? 15 : 8 + this.speed * 0.6);
-    const bob = moving && !this.isSliding ? Math.sin(this.bobTime) * Math.min(0.045, this.speed * 0.004) : 0;
+    if (moving)
+      this.bobTime += delta * (this.isSliding ? 15 : 8 + this.speed * 0.6);
+    const bob =
+      moving && !this.isSliding
+        ? Math.sin(this.bobTime) * Math.min(0.045, this.speed * 0.004)
+        : 0;
     this.shakeStrength = damp(this.shakeStrength, 0, 14, delta);
     const shakeX = (Math.random() - 0.5) * this.shakeStrength;
     const shakeY = (Math.random() - 0.5) * this.shakeStrength;
-    this.yaw.position.set(this.position.x + shakeX, this.position.y + this.eyeHeight + bob + shakeY, this.position.z);
-    this.pitch.rotation.z = damp(this.pitch.rotation.z, this.isSliding ? -0.045 : 0, 10, delta);
+    this.yaw.position.set(
+      this.position.x + shakeX,
+      this.position.y + this.eyeHeight + bob + shakeY,
+      this.position.z,
+    );
+    this.pitch.rotation.z = damp(
+      this.pitch.rotation.z,
+      this.isSliding ? -0.045 : 0,
+      10,
+      delta,
+    );
+  }
+
+  clearInput(): void {
+    this.keys.clear();
+    this.fallbackEdgeX = 0;
+    this.fallbackEdgeY = 0;
   }
 
   private isDown(code: string): boolean {
@@ -209,17 +293,27 @@ export class PlayerController {
 
   private bindInput(): void {
     window.addEventListener("keydown", (event) => {
+      if (!this.enabled) return;
       this.keys.add(event.code);
-      if (["Space", "KeyC", "ControlLeft", "ControlRight"].includes(event.code)) event.preventDefault();
+      if (["Space", "KeyC", "ControlLeft", "ControlRight"].includes(event.code))
+        event.preventDefault();
       if (event.code === "Space" && !event.repeat) this.jump();
-      if (["KeyC", "ControlLeft", "ControlRight"].includes(event.code) && !event.repeat) this.startSlide();
+      if (
+        ["KeyC", "ControlLeft", "ControlRight"].includes(event.code) &&
+        !event.repeat
+      )
+        this.startSlide();
     });
     window.addEventListener("keyup", (event) => this.keys.delete(event.code));
     const updateLook = (event: MouseEvent): void => {
       if (!this.enabled) return;
-      this.yaw.rotation.y -= event.movementX * 0.00215;
-      this.pitch.rotation.x -= event.movementY * 0.0019;
-      this.pitch.rotation.x = THREE.MathUtils.clamp(this.pitch.rotation.x, -1.48, 1.48);
+      this.yaw.rotation.y -= event.movementX * 0.00215 * this.sensitivity;
+      this.pitch.rotation.x -= event.movementY * 0.0019 * this.sensitivity;
+      this.pitch.rotation.x = THREE.MathUtils.clamp(
+        this.pitch.rotation.x,
+        -1.48,
+        1.48,
+      );
     };
     window.addEventListener("mousemove", (event) => {
       if (document.pointerLockElement !== this.canvas) return;
@@ -229,12 +323,16 @@ export class PlayerController {
       if (!this.fallbackLookEnabled) return;
       updateLook(event);
       const bounds = this.canvas.getBoundingClientRect();
-      const normalizedX = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      const normalizedY = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
+      const normalizedX =
+        ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+      const normalizedY =
+        ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
       const edgeStrength = (value: number): number => {
         const threshold = 0.78;
         const magnitude = Math.abs(value);
-        return magnitude <= threshold ? 0 : Math.sign(value) * (magnitude - threshold) / (1 - threshold);
+        return magnitude <= threshold
+          ? 0
+          : (Math.sign(value) * (magnitude - threshold)) / (1 - threshold);
       };
       this.fallbackEdgeX = edgeStrength(normalizedX);
       this.fallbackEdgeY = edgeStrength(normalizedY);

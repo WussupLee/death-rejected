@@ -2,20 +2,10 @@ import * as THREE from "three";
 import type { AudioManager } from "./AudioManager";
 import type { EnemySystem } from "./EnemySystem";
 import type { PlayerController } from "./PlayerController";
-import type { WeaponId } from "./types";
-
-interface WeaponDefinition {
-  id: WeaponId;
-  name: string;
-  clipSize: number;
-  reserveSize: number;
-  damage: number;
-  fireDelay: number;
-  reloadTime: number;
-  range: number;
-  pellets: number;
-  spread: number;
-}
+import type { WeaponId, WeaponDefinition } from "./types";
+import { AssetLibrary, AnimatedAsset } from "./AssetLibrary";
+import type { CombatEffects } from "./CombatEffects";
+import { KNIFE, attackPhase } from "./Simulation";
 
 interface WeaponState {
   definition: WeaponDefinition;
@@ -26,16 +16,32 @@ interface WeaponState {
 
 const DEFINITIONS: Record<WeaponId, WeaponDefinition> = {
   pistol: {
-    id: "pistol", name: "BLACKTHORN .45", clipSize: 12, reserveSize: 72,
-    damage: 38, fireDelay: 0.19, reloadTime: 1.05, range: 75, pellets: 1, spread: 0.0025,
+    id: "pistol",
+    name: "BLACKTHORN .45",
+    clipSize: 12,
+    reserveSize: 72,
+    damage: 38,
+    fireDelay: 0.19,
+    reloadTime: 1.05,
+    range: 75,
+    pellets: 1,
+    spread: 0.0025,
   },
   shotgun: {
-    id: "shotgun", name: "WIDOWMAKER 12G", clipSize: 6, reserveSize: 30,
-    damage: 17, fireDelay: 0.72, reloadTime: 1.38, range: 38, pellets: 8, spread: 0.052,
+    id: "shotgun",
+    name: "WIDOWMAKER 12G",
+    clipSize: 6,
+    reserveSize: 30,
+    damage: 17,
+    fireDelay: 0.72,
+    reloadTime: 1.38,
+    range: 38,
+    pellets: 8,
+    spread: 0.052,
   },
 };
 
-const MELEE_DURATION = 0.42;
+const MELEE_DURATION = KNIFE.windup + KNIFE.active + KNIFE.recovery;
 const MELEE_RANGE = 3.15;
 
 export class WeaponSystem {
@@ -44,15 +50,30 @@ export class WeaponSystem {
   currentId: WeaponId = "pistol";
 
   private readonly weapons: Record<WeaponId, WeaponState> = {
-    pistol: { definition: DEFINITIONS.pistol, ammo: 12, reserve: 72, owned: true },
-    shotgun: { definition: DEFINITIONS.shotgun, ammo: 6, reserve: 30, owned: false },
+    pistol: {
+      definition: DEFINITIONS.pistol,
+      ammo: 12,
+      reserve: 72,
+      owned: true,
+    },
+    shotgun: {
+      definition: DEFINITIONS.shotgun,
+      ammo: 6,
+      reserve: 30,
+      owned: false,
+    },
   };
   private triggerHeld = false;
   private aimHeld = false;
   private fireCooldown = 0;
   private meleeCooldown = 0;
   private meleeTimer = 0;
-  private meleeHitPending = false;
+  private readonly meleeHits = new Set<number>();
+  private readonly actors: AnimatedAsset[] = [];
+  private visualTime = 0;
+  private debugCone: THREE.Mesh | null = null;
+  private autoReload = 0;
+  private equipTimer = 0;
   private reloadTimer = 0;
   private reloading = false;
   private recoil = 0;
@@ -70,9 +91,15 @@ export class WeaponSystem {
     private readonly player: PlayerController,
     private readonly enemies: EnemySystem,
     private readonly audio: AudioManager,
-    private readonly onFireFeedback: (hit: boolean, heavy: boolean, headshot: boolean) => void,
+    private readonly assets: AssetLibrary,
+    private readonly effects: CombatEffects,
+    private readonly onFireFeedback: (
+      hit: boolean,
+      heavy: boolean,
+      headshot: boolean,
+    ) => void,
   ) {
-    this.group.position.set(0.36, -0.32, -0.62);
+    this.group.position.set(0.28, -0.24, -0.5);
     this.player.camera.add(this.group);
     this.player.camera.add(this.meleeModel);
     this.buildModels();
@@ -94,16 +121,30 @@ export class WeaponSystem {
     this.fireCooldown = 0;
     this.meleeCooldown = 0;
     this.meleeTimer = 0;
-    this.meleeHitPending = false;
+    this.meleeHits.clear();
     this.meleeModel.visible = false;
     this.canvas.dataset.meleeRange = String(MELEE_RANGE);
     this.reloadTimer = 0;
     this.reloading = false;
-    this.triggerHeld = false;
+    this.clearInput();
+    this.autoReload = 0;
+    this.recoil = 0;
+    this.muzzleTimer = 0;
     this.updateModelVisibility();
   }
 
   update(delta: number): void {
+    if (!this.enabled) return;
+    this.equipTimer = Math.max(0, this.equipTimer - delta);
+    this.autoReload = Math.max(0, this.autoReload - delta);
+    if (
+      this.current.ammo === 0 &&
+      this.current.reserve > 0 &&
+      this.autoReload === 0 &&
+      !this.reloading &&
+      this.fireCooldown <= 0
+    )
+      this.reload();
     this.fireCooldown = Math.max(0, this.fireCooldown - delta);
     this.meleeCooldown = Math.max(0, this.meleeCooldown - delta);
     this.meleeTimer = Math.max(0, this.meleeTimer - delta);
@@ -115,15 +156,28 @@ export class WeaponSystem {
       const slash = Math.sin(Math.min(1, progress) * Math.PI);
       this.meleeModel.visible = true;
       this.canvas.dataset.meleeActive = "true";
-      this.meleeModel.position.set(0.58 - slash * 0.7, -0.54 + slash * 0.2, -0.58 - slash * 0.42);
-      this.meleeModel.rotation.set(-0.38 - slash * 0.32, -0.18 - slash * 1.05, -0.28 - slash * 1.7);
-      if (this.meleeHitPending && progress >= 0.31) {
-        this.meleeHitPending = false;
+      this.meleeModel.position.set(
+        0.58 - slash * 0.7,
+        -0.54 + slash * 0.2,
+        -0.58 - slash * 0.42,
+      );
+      this.meleeModel.rotation.set(
+        -0.38 - slash * 0.32,
+        -0.18 - slash * 1.05,
+        -0.28 - slash * 1.7,
+      );
+      if (this.attackWindow === "active") {
         const direction = this.player.getViewDirection();
-        const result = this.enemies.melee(this.player.position, direction, 74, MELEE_RANGE);
-        if (result) {
+        const results = this.enemies.melee(
+          this.player.position,
+          direction,
+          KNIFE.damage,
+          MELEE_RANGE,
+          this.meleeHits,
+        );
+        if (results.length) {
           this.onFireFeedback(true, false, false);
-          this.player.addImpulse(direction, 0.7);
+          this.player.addImpulse(direction, 0.15);
         }
       }
     } else {
@@ -136,40 +190,79 @@ export class WeaponSystem {
       if (this.reloadTimer <= 0) this.finishReload();
     }
     if (this.enabled && this.triggerHeld && !this.reloading) this.fire();
+  }
 
-    const moveSway = this.player.speed > 0.5 ? Math.sin(performance.now() * 0.008) * 0.018 : 0;
+  render(delta: number): void {
+    if (!this.enabled) return;
+    this.visualTime += delta;
+    for (const actor of this.actors) actor.update(delta);
+    const moveSway =
+      this.player.speed > 0.5 ? Math.sin(this.visualTime * 8) * 0.018 : 0;
     this.sway += (moveSway - this.sway) * (1 - Math.exp(-9 * delta));
     this.recoil += (0 - this.recoil) * (1 - Math.exp(-13 * delta));
     const aim = this.aimHeld ? 0.42 : 1;
-    this.group.position.x += ((0.36 * aim + this.sway) - this.group.position.x) * (1 - Math.exp(-10 * delta));
-    this.group.position.y += ((-0.32 - Math.abs(this.sway) - this.recoil * 0.18) - this.group.position.y) * (1 - Math.exp(-12 * delta));
-    this.group.rotation.x = this.recoil * 0.16;
+    this.group.position.x +=
+      (0.28 * aim + this.sway - this.group.position.x) *
+      (1 - Math.exp(-10 * delta));
+    this.group.position.y +=
+      (-0.24 -
+        Math.abs(this.sway) +
+        this.recoil * 0.035 -
+        this.group.position.y) *
+      (1 - Math.exp(-12 * delta));
+    this.group.position.z = -0.5 + this.recoil * 0.09;
+    const reloadProgress = this.reloading
+      ? 1 - this.reloadTimer / this.current.definition.reloadTime
+      : 0;
+    const reloadArc = Math.sin(reloadProgress * Math.PI);
+    this.group.position.y =
+      -0.24 -
+      Math.abs(this.sway) +
+      this.recoil * 0.035 -
+      reloadArc * 0.14 -
+      this.equipTimer * 0.8 +
+      Math.sin(this.visualTime * 1.8) * 0.002;
+    this.group.rotation.x = this.recoil * 0.2 - reloadArc * 0.3;
+    this.group.rotation.y = reloadArc * -0.5;
+    this.group.visible = this.meleeTimer <= 0;
     this.group.rotation.z = this.player.isSliding ? 0.18 : -this.sway * 0.9;
-    this.player.camera.fov += ((this.aimHeld ? 66 : 78) - this.player.camera.fov) * (1 - Math.exp(-12 * delta));
+    this.player.camera.fov +=
+      ((this.aimHeld ? 66 : 78) - this.player.camera.fov) *
+      (1 - Math.exp(-12 * delta));
     this.player.camera.updateProjectionMatrix();
   }
 
   reload(): void {
-    if (!this.enabled || this.reloading) return;
+    if (!this.enabled || this.reloading || this.meleeTimer > 0) return;
     const state = this.current;
     if (state.ammo >= state.definition.clipSize || state.reserve <= 0) return;
     this.reloading = true;
     this.reloadTimer = state.definition.reloadTime;
     this.audio.reload();
+    this.actors[this.currentId === "pistol" ? 0 : 1].play("reload", true);
   }
 
   knife(): void {
     if (!this.enabled || this.meleeCooldown > 0) return;
+    this.reloading = false;
+    this.meleeHits.clear();
     this.meleeCooldown = 0.46;
     this.meleeTimer = MELEE_DURATION;
-    this.meleeHitPending = true;
+    this.actors[2].play("slash", true);
     this.recoil = -0.65;
     this.audio.knife();
   }
 
   switchTo(id: WeaponId): void {
-    if (!this.weapons[id].owned || this.currentId === id) return;
+    if (
+      !this.enabled ||
+      this.meleeTimer > 0 ||
+      !this.weapons[id].owned ||
+      this.currentId === id
+    )
+      return;
     this.currentId = id;
+    this.equipTimer = 0.22;
     this.reloading = false;
     this.updateModelVisibility();
   }
@@ -178,6 +271,7 @@ export class WeaponSystem {
     if (this.weapons.shotgun.owned) return false;
     this.weapons.shotgun.owned = true;
     this.currentId = "shotgun";
+    this.reloading = false;
     this.updateModelVisibility();
     return true;
   }
@@ -185,7 +279,8 @@ export class WeaponSystem {
   refillAmmo(): boolean {
     let changed = false;
     for (const state of Object.values(this.weapons)) {
-      if (!state.owned || state.reserve >= state.definition.reserveSize) continue;
+      if (!state.owned || state.reserve >= state.definition.reserveSize)
+        continue;
       state.reserve = state.definition.reserveSize;
       changed = true;
     }
@@ -196,7 +291,13 @@ export class WeaponSystem {
     return this.weapons.shotgun.owned;
   }
 
-  get hud(): { name: string; ammo: number; reserve: number; reloading: boolean; slot: number } {
+  get hud(): {
+    name: string;
+    ammo: number;
+    reserve: number;
+    reloading: boolean;
+    slot: number;
+  } {
     return {
       name: this.current.definition.name,
       ammo: this.current.ammo,
@@ -211,7 +312,13 @@ export class WeaponSystem {
   }
 
   private fire(): void {
-    if (!this.enabled || this.fireCooldown > 0 || this.reloading) return;
+    if (
+      !this.enabled ||
+      this.fireCooldown > 0 ||
+      this.reloading ||
+      this.meleeTimer > 0
+    )
+      return;
     const state = this.current;
     if (state.ammo <= 0) {
       this.reload();
@@ -219,13 +326,32 @@ export class WeaponSystem {
       return;
     }
     state.ammo -= 1;
+    this.actors[this.currentId === "pistol" ? 0 : 1].play("fire", true);
     this.fireCooldown = state.definition.fireDelay;
     this.recoil = this.currentId === "shotgun" ? 1 : 0.48;
-    this.muzzleTimer = 0.045;
+    this.muzzleTimer = 0.055;
+    const origin = this.player.camera.getWorldPosition(new THREE.Vector3());
+    const forward = this.player.getViewDirection();
+    this.effects.emit(
+      origin.clone().addScaledVector(forward, 0.65),
+      forward,
+      "smoke",
+    );
+    const right = new THREE.Vector3(1, 0.3, 0).applyQuaternion(
+      this.player.camera.getWorldQuaternion(new THREE.Quaternion()),
+    );
+    this.effects.emit(
+      origin.clone().addScaledVector(forward, 0.4),
+      right,
+      "shell",
+    );
     this.player.addShake(this.currentId === "shotgun" ? 0.045 : 0.017);
     if (this.currentId === "shotgun") {
       this.audio.shotgun();
-      this.player.addImpulse(this.player.getViewDirection().multiplyScalar(-1), 0.36);
+      this.player.addImpulse(
+        this.player.getViewDirection().multiplyScalar(-1),
+        0.36,
+      );
     } else {
       this.audio.pistol();
     }
@@ -233,23 +359,37 @@ export class WeaponSystem {
     let hit = false;
     let headshot = false;
     for (let pellet = 0; pellet < state.definition.pellets; pellet += 1) {
-      this.localDirection.set(
-        (Math.random() - 0.5) * state.definition.spread,
-        (Math.random() - 0.5) * state.definition.spread,
-        -1,
-      ).normalize();
-      this.rayDirection.copy(this.localDirection).applyQuaternion(this.player.camera.getWorldQuaternion(new THREE.Quaternion()));
+      this.localDirection
+        .set(
+          (Math.random() - 0.5) * state.definition.spread,
+          (Math.random() - 0.5) * state.definition.spread,
+          -1,
+        )
+        .normalize();
+      this.rayDirection
+        .copy(this.localDirection)
+        .applyQuaternion(
+          this.player.camera.getWorldQuaternion(new THREE.Quaternion()),
+        );
       const result = this.enemies.hitScan(
         this.player.camera.getWorldPosition(new THREE.Vector3()),
         this.rayDirection,
         state.definition.damage,
         state.definition.range,
       );
+      if (result)
+        this.effects.emit(
+          result.enemy.position
+            .clone()
+            .add(new THREE.Vector3(0, result.headshot ? 1.95 : 1.1, 0)),
+          this.rayDirection,
+          "blood",
+        );
       hit ||= result != null;
       headshot ||= result?.headshot === true;
     }
     this.onFireFeedback(hit, this.currentId === "shotgun", headshot);
-    if (state.ammo === 0 && state.reserve > 0) window.setTimeout(() => this.reload(), 210);
+    if (state.ammo === 0 && state.reserve > 0) this.autoReload = 0.21;
   }
 
   private finishReload(): void {
@@ -266,74 +406,69 @@ export class WeaponSystem {
     this.shotgunModel.visible = this.currentId === "shotgun";
   }
 
+  get attackWindow(): string {
+    return this.meleeTimer > 0
+      ? attackPhase(MELEE_DURATION - this.meleeTimer, KNIFE)
+      : "idle";
+  }
+  clearInput(): void {
+    this.triggerHeld = false;
+    this.aimHeld = false;
+  }
   private buildModels(): void {
-    const black = new THREE.MeshStandardMaterial({ color: 0x121313, roughness: 0.34, metalness: 0.82 });
-    const steel = new THREE.MeshStandardMaterial({ color: 0x4e5552, roughness: 0.28, metalness: 0.9 });
-    const red = new THREE.MeshStandardMaterial({ color: 0x5f0711, roughness: 0.45, metalness: 0.5, emissive: 0x180003 });
-    const bone = new THREE.MeshStandardMaterial({ color: 0xb9aa90, roughness: 0.7 });
-    const glove = new THREE.MeshStandardMaterial({ color: 0x171315, roughness: 0.92 });
-    const blade = new THREE.MeshStandardMaterial({ color: 0xd5ddd9, roughness: 0.2, metalness: 0.92 });
-
-    const pistolBody = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.2, 0.7), black);
-    pistolBody.position.z = -0.2;
-    const pistolSlide = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.78), steel);
-    pistolSlide.position.set(0, 0.12, -0.24);
-    const pistolGrip = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.42, 0.22), red);
-    pistolGrip.position.set(0, -0.25, 0.03);
-    pistolGrip.rotation.x = -0.25;
-    const pistolSigil = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.012, 5, 10), bone);
-    pistolSigil.position.set(0.126, -0.05, -0.14);
-    pistolSigil.rotation.y = Math.PI / 2;
-    this.pistolModel.add(pistolBody, pistolSlide, pistolGrip, pistolSigil);
-
-    const shotgunBody = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.27, 1.25), black);
-    shotgunBody.position.z = -0.38;
-    const shotgunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.075, 1.22, 8), steel);
-    shotgunBarrel.rotation.x = Math.PI / 2;
-    shotgunBarrel.position.set(0, 0.12, -0.95);
-    const pump = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.22, 0.4), red);
-    pump.position.set(0, -0.05, -0.72);
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.48), bone);
-    stock.position.set(0, -0.08, 0.4);
-    stock.rotation.x = -0.12;
-    this.shotgunModel.add(shotgunBody, shotgunBarrel, pump, stock);
-
-    const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.52, 3, 7), glove);
-    forearm.rotation.x = Math.PI / 2;
-    forearm.position.set(0.08, -0.03, 0.22);
-    const fist = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.28), glove);
-    fist.position.z = -0.17;
-    const knifeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.3, 7), red);
-    knifeHandle.rotation.x = Math.PI / 2;
-    knifeHandle.position.z = -0.37;
-    const knifeBlade = new THREE.Mesh(new THREE.ConeGeometry(0.105, 0.62, 4), blade);
-    knifeBlade.rotation.x = -Math.PI / 2;
-    knifeBlade.rotation.z = Math.PI / 4;
-    knifeBlade.position.z = -0.78;
-    this.meleeModel.add(forearm, fist, knifeHandle, knifeBlade);
+    for (const [index, id] of ["blackthorn", "widowmaker", "knife"].entries()) {
+      const actor = this.assets.create(id);
+      this.actors.push(actor);
+      const target = [this.pistolModel, this.shotgunModel, this.meleeModel][
+        index
+      ];
+      actor.root.scale.setScalar(0.68);
+      target.add(actor.root);
+      if (index < 2) this.group.add(target);
+    }
+    const fill = new THREE.PointLight(0xd9c2a2, 2, 2, 1);
+    fill.position.set(-0.4, 0.2, -0.2);
+    this.player.camera.add(fill);
     this.meleeModel.visible = false;
-    this.meleeModel.traverse((object) => {
-      if (object instanceof THREE.Mesh) object.castShadow = true;
-    });
-
-    for (const model of [this.pistolModel, this.shotgunModel]) {
-      model.traverse((object) => {
-        if (object instanceof THREE.Mesh) object.castShadow = true;
+    if (import.meta.env.DEV) {
+      this.debugCone = new THREE.Mesh(
+        new THREE.ConeGeometry(1.9, KNIFE.range, 18, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: 0xff2244,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.25,
+          depthTest: false,
+        }),
+      );
+      this.debugCone.rotation.x = -Math.PI / 2;
+      this.debugCone.position.z = -KNIFE.range / 2;
+      this.debugCone.visible = false;
+      this.player.camera.add(this.debugCone);
+      window.addEventListener("keydown", (event) => {
+        if (event.code === "F8" && this.debugCone)
+          this.debugCone.visible = !this.debugCone.visible;
       });
-      this.group.add(model);
     }
   }
 
   private bindInput(): void {
     this.canvas.addEventListener("mousedown", (event) => {
-      if (event.button === 0) this.triggerHeld = true;
+      if (!this.enabled) return;
+      if (event.button === 0) {
+        this.triggerHeld = true;
+        this.fire();
+      }
       if (event.button === 2) this.aimHeld = true;
     });
+    window.addEventListener("blur", () => this.clearInput());
     window.addEventListener("mouseup", (event) => {
       if (event.button === 0) this.triggerHeld = false;
       if (event.button === 2) this.aimHeld = false;
     });
-    this.canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+    this.canvas.addEventListener("contextmenu", (event) =>
+      event.preventDefault(),
+    );
     window.addEventListener("keydown", (event) => {
       if (event.repeat) return;
       if (event.code === "Digit1") this.switchTo("pistol");
@@ -341,9 +476,14 @@ export class WeaponSystem {
       if (event.code === "KeyQ") this.knife();
       if (event.code === "KeyR") this.reload();
     });
-    this.canvas.addEventListener("wheel", (event) => {
-      event.preventDefault();
-      if (this.hasShotgun) this.switchTo(this.currentId === "pistol" ? "shotgun" : "pistol");
-    }, { passive: false });
+    this.canvas.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        if (this.hasShotgun)
+          this.switchTo(this.currentId === "pistol" ? "shotgun" : "pistol");
+      },
+      { passive: false },
+    );
   }
 }

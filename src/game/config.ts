@@ -1,3 +1,4 @@
+import type { MovementProfile } from "./types";
 export const WORLD = {
   halfWidth: 30,
   halfDepth: 24,
@@ -8,7 +9,7 @@ export const WORLD = {
   gravity: 26,
 } as const;
 
-export const PLAYER = {
+export const PLAYER: MovementProfile = {
   maxBlood: 100,
   walkSpeed: 7.2,
   sprintSpeed: 14.6,
@@ -38,9 +39,19 @@ export const COLORS = {
 
 export function toRoman(value: number): string {
   const pairs: Array<[number, string]> = [
-    [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"],
-    [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"],
-    [5, "V"], [4, "IV"], [1, "I"],
+    [1000, "M"],
+    [900, "CM"],
+    [500, "D"],
+    [400, "CD"],
+    [100, "C"],
+    [90, "XC"],
+    [50, "L"],
+    [40, "XL"],
+    [10, "X"],
+    [9, "IX"],
+    [5, "V"],
+    [4, "IV"],
+    [1, "I"],
   ];
   let rest = Math.max(1, Math.floor(value));
   let result = "";

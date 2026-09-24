@@ -1,0 +1,254 @@
+{
+  "viewport": [
+    1920,
+    1080
+  ],
+  "samples": 1826,
+  "medianMs": 16.69999999552965,
+  "p95Ms": 16.899999998509884,
+  "averageMs": 16.66659364731817,
+  "snapshot": {
+    "phase": "playing",
+    "blood": 100,
+    "marks": 0,
+    "kills": 0,
+    "moon": 1,
+    "moonState": "combat",
+    "intensity": "cleanup",
+    "enemiesRemaining": 13,
+    "attempts": 0,
+    "bestMoon": 1,
+    "weapon": {
+      "name": "BLACKTHORN .45",
+      "ammo": 12,
+      "reserve": 72,
+      "reloading": false,
+      "slot": 1
+    },
+    "player": {
+      "x": -9,
+      "y": 5.4,
+      "z": 21,
+      "speed": 0,
+      "sliding": false,
+      "airborne": false,
+      "yaw": 0,
+      "pitch": -0.25
+    },
+    "mouseMode": "pointer-lock",
+    "quality": {
+      "id": "high",
+      "scale": 1,
+      "shadows": true,
+      "reflections": true,
+      "particles": 96,
+      "animationHz": 60,
+      "postProcessing": true
+    },
+    "frameMs": 16.899999998509884,
+    "simulation": {
+      "elapsed": 31.74999999999884,
+      "dropped": 1.2621999999955293
+    },
+    "attackWindow": "idle",
+    "hitZone": null,
+    "navigation": [
+      {
+        "id": 0,
+        "kind": "thrall",
+        "position": [
+          -8.193412020708577,
+          5.4,
+          19.920676562408932
+        ],
+        "blood": 88,
+        "path": 3,
+        "index": 0,
+        "repaths": 22,
+        "recoveries": 0,
+        "attack": 0.5583333333333338
+      },
+      {
+        "id": 1,
+        "kind": "stalker",
+        "position": [
+          -10,
+          5.4,
+          19.88108333333335
+        ],
+        "blood": 69,
+        "path": 6,
+        "index": 2,
+        "repaths": 16,
+        "recoveries": 0,
+        "attack": 0.24999999999999997
+      },
+      {
+        "id": 2,
+        "kind": "thrall",
+        "position": [
+          -8.818751073491043,
+          5.4,
+          19.659209376793587
+        ],
+        "blood": 88,
+        "path": 4,
+        "index": 2,
+        "repaths": 20,
+        "recoveries": 0,
+        "attack": 0.10833333333333332
+      },
+      {
+        "id": 3,
+        "kind": "stalker",
+        "position": [
+          -8.000077960095977,
+          5.4,
+          19.905020393653746
+        ],
+        "blood": 69,
+        "path": 7,
+        "index": 3,
+        "repaths": 15,
+        "recoveries": 0,
+        "attack": -1
+      },
+      {
+        "id": 4,
+        "kind": "thrall",
+        "position": [
+          -10.166726162061364,
+          5.4,
+          20.316431416707946
+        ],
+        "blood": 88,
+        "path": 3,
+        "index": 0,
+        "repaths": 17,
+        "recoveries": 0,
+        "attack": 0.21666666666666665
+      },
+      {
+        "id": 5,
+        "kind": "stalker",
+        "position": [
+          -7.628322349619723,
+          5.4,
+          20.115473101086824
+        ],
+        "blood": 69,
+        "path": 2,
+        "index": 0,
+        "repaths": 28,
+        "recoveries": 0,
+        "attack": 1.0249999999999988
+      },
+      {
+        "id": 6,
+        "kind": "thrall",
+        "position": [
+          -9.407055321132185,
+          5.4,
+          19.725514444779364
+        ],
+        "blood": 88,
+        "path": 5,
+        "index": 1,
+        "repaths": 24,
+        "recoveries": 0,
+        "attack": 0.483333333333334
+      },
+      {
+        "id": 7,
+        "kind": "stalker",
+        "position": [
+          -9.002610088652514,
+          5.4,
+          19.587749186668383
+        ],
+        "blood": 69,
+        "path": 7,
+        "index": 5,
+        "repaths": 17,
+        "recoveries": 1,
+        "attack": 0.6916666666666667
+      },
+      {
+        "id": 8,
+        "kind": "thrall",
+        "position": [
+          -8,
+          5.4,
+          20.098934114281494
+        ],
+        "blood": 88,
+        "path": 6,
+        "index": 4,
+        "repaths": 13,
+        "recoveries": 0,
+        "attack": 0.9249999999999992
+      },
+      {
+        "id": 9,
+        "kind": "stalker",
+        "position": [
+          -9.956450116091538,
+          5.4,
+          19.91537261359397
+        ],
+        "blood": 69,
+        "path": 6,
+        "index": 3,
+        "repaths": 17,
+        "recoveries": 0,
+        "attack": 0.6333333333333335
+      },
+      {
+        "id": 10,
+        "kind": "thrall",
+        "position": [
+          -9.228430136254422,
+          5.4,
+          19.68825984957431
+        ],
+        "blood": 88,
+        "path": 2,
+        "index": 0,
+        "repaths": 30,
+        "recoveries": 1,
+        "attack": -1
+      },
+      {
+        "id": 11,
+        "kind": "stalker",
+        "position": [
+          -8.701499756788179,
+          5.4,
+          19.209244313049567
+        ],
+        "blood": 69,
+        "path": 5,
+        "index": 1,
+        "repaths": 32,
+        "recoveries": 2,
+        "attack": 0.041666666666666664
+      },
+      {
+        "id": 12,
+        "kind": "thrall",
+        "position": [
+          -10.104123274134476,
+          5.4,
+          19.290665790011232
+        ],
+        "blood": 88,
+        "path": 3,
+        "index": 1,
+        "repaths": 37,
+        "recoveries": 9,
+        "attack": -1
+      }
+    ],
+    "drawCalls": 397
+  }
+}

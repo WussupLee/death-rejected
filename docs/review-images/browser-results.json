@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "keyboard menu navigation and quality selection",
+    "native pointer lock acquired on Begin",
+    "sprint, slide, jump inputs move the player",
+    "unrestricted mouse rotation exceeds 360 degrees",
+    "Escape releases native lock and freezes simulation",
+    "Q knife visible active/recovery window and single execution reward",
+    "fire hits separate head volume with headshot feedback",
+    "reload remains frozen while paused",
+    "shop transaction deducts 450 Marks, equips shotgun, and does not charge for full ammo",
+    "death, authored tally, single new mark and fast restart",
+    "attempt persists across page reload",
+    "explicit pointer-lock denial enables preview look; Escape stays paused"
+  ],
+  "errors": []
+}

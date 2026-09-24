@@ -4,10 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#090606" />
-    <meta name="description" content="DEATH REJECTED — an original fast occult survival shooter set in a dead mall in purgatory." />
+    <meta
+      name="description"
+      content="DEATH REJECTED — an original fast occult survival shooter set in a dead mall in purgatory."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta property="og:title" content="DEATH REJECTED" />
-    <meta property="og:description" content="The mall remembers every attempt." />
-    <meta property="og:image" content="/assets/og-death-rejected.png" />
+    <meta
+      property="og:description"
+      content="The mall remembers every attempt."
+    />
+    <meta
+      property="og:image"
+      content="https://death-rejected-astra-v2.wussuplee.chatgpt.site/og.png"
+    />
+    <link rel="icon" href="/assets/hunter-portrait.webp" />
     <title>DEATH REJECTED</title>
   </head>
   <body>
@@ -15,26 +26,44 @@
       <canvas id="game-canvas" aria-label="First-person game view"></canvas>
       <div id="screen-fx" aria-hidden="true"></div>
 
-      <section id="landing" class="overlay overlay--visible" aria-labelledby="game-title">
+      <section
+        id="landing"
+        class="overlay overlay--visible"
+        aria-labelledby="game-title"
+      >
         <div class="menu-noise" aria-hidden="true"></div>
         <div class="title-lockup">
-          <p class="menu-code">PURGATORY FILE 07 // ATTEMPT <b id="attempt-number">001</b></p>
+          <p class="menu-code">
+            PURGATORY FILE 07 // ATTEMPT <b id="attempt-number">001</b>
+          </p>
           <h1 id="game-title"><span>DEATH</span><i>REJECTED</i></h1>
           <p class="menu-tagline">The mall remembers every attempt.</p>
           <nav class="main-menu" aria-label="Main menu">
-            <button id="begin-button" class="menu-button" type="button"><span>01</span> BEGIN AGAIN</button>
-            <button class="menu-button menu-button--mute" type="button" disabled><span>02</span> RECORDS SEALED</button>
-            <button class="menu-button menu-button--mute" type="button" disabled><span>03</span> NO EXIT</button>
+            <button id="begin-button" class="menu-button" type="button">
+              <span>01</span> BEGIN AGAIN
+            </button>
+            <button id="settings-button" class="menu-button" type="button">
+              <span>02</span> OPTIONS
+            </button>
+            <button id="controls-button" class="menu-button" type="button">
+              <span>03</span> CONTROLS
+            </button>
           </nav>
           <div class="control-strip" aria-label="Primary controls">
-            <span><kbd>WASD</kbd> MOVE</span><span><kbd>SHIFT</kbd> SPRINT</span>
-            <span><kbd>C</kbd> SLIDE</span><span><kbd>SPACE</kbd> JUMP</span>
-            <span><kbd>LMB</kbd> FIRE</span><span><kbd>RMB</kbd> AIM</span>
-            <span><kbd>Q</kbd> KNIFE</span><span><kbd>E</kbd> SHOP</span><span><kbd>ESC</kbd> RELEASE</span>
+            <span><kbd>WASD</kbd> MOVE</span
+            ><span><kbd>SHIFT</kbd> SPRINT</span> <span><kbd>C</kbd> SLIDE</span
+            ><span><kbd>SPACE</kbd> JUMP</span> <span><kbd>LMB</kbd> FIRE</span
+            ><span><kbd>RMB</kbd> AIM</span> <span><kbd>Q</kbd> KNIFE</span
+            ><span><kbd>E</kbd> SHOP</span><span><kbd>ESC</kbd> RELEASE</span>
           </div>
-          <small>CLICK BEGIN AGAIN TO CAPTURE THE MOUSE // HEADPHONES RECOMMENDED</small>
+          <small
+            >CLICK BEGIN AGAIN TO CAPTURE THE MOUSE // HEADPHONES
+            RECOMMENDED</small
+          >
         </div>
-        <p class="menu-footer">LOOKS OLD // FEELS MODERN <b>V2 ATRIUM BUILD</b></p>
+        <p class="menu-footer">
+          LOOKS OLD // FEELS MODERN <b>V2 ATRIUM BUILD</b>
+        </p>
       </section>
 
       <section id="pause-screen" class="overlay" aria-label="Game paused">
@@ -42,17 +71,71 @@
           <span class="eyebrow">SIGNAL INTERRUPTED</span>
           <h2>PAUSED</h2>
           <p>THE MOON IS STILL WATCHING.</p>
-          <button id="resume-button" class="menu-button" type="button"><span>01</span> RETURN</button>
-          <small>ESC RELEASES THE MOUSE</small>
+          <button id="resume-button" class="menu-button" type="button">
+            <span>01</span> RETURN
+          </button>
+          <button id="pause-settings" class="menu-button" type="button">
+            <span>02</span> OPTIONS</button
+          ><small>ESC RELEASES THE MOUSE</small>
         </div>
       </section>
 
-      <section id="death-screen" class="overlay death-overlay" aria-live="assertive">
+      <section id="settings-screen" hidden aria-label="Options">
+        <h2>OPTIONS</h2>
+        <label class="settings-row"
+          >QUALITY
+          <select id="quality-setting">
+            <option value="auto">AUTOMATIC</option>
+            <option value="high">HIGH</option>
+            <option value="balanced">BALANCED</option>
+            <option value="performance">PERFORMANCE</option>
+          </select></label
+        >
+        <label class="settings-row"
+          >LOOK SENSITIVITY
+          <input
+            id="sensitivity-setting"
+            aria-label="Look sensitivity"
+            type="range"
+            min="0.3"
+            max="2"
+            step="0.1"
+            value="1"
+        /></label>
+        <label class="settings-row"
+          >VOLUME
+          <input
+            id="volume-setting"
+            aria-label="Volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.7"
+        /></label>
+        <p id="controls-help">
+          WASD move � Shift sprint � C / Ctrl slide � Space jump<br />Mouse aim
+          � LMB fire � RMB sights � R reload � Q knife<br />1 / 2 / wheel equip
+          � E shop � Escape pause / release mouse
+        </p>
+        <button id="settings-back" class="menu-button" type="button">
+          RETURN
+        </button>
+      </section>
+      <section
+        id="death-screen"
+        class="overlay death-overlay"
+        aria-live="assertive"
+      >
         <p id="death-kicker">PURGATORY REFUSES YOUR CLAIM</p>
         <h2><span>DEATH</span><i>REJECTED</i></h2>
       </section>
 
-      <section id="tally-screen" class="overlay tally-overlay" aria-labelledby="tally-title">
+      <section
+        id="tally-screen"
+        class="overlay tally-overlay"
+        aria-labelledby="tally-title"
+      >
         <div class="tally-scene">
           <div class="hunter-revival" aria-hidden="true">
             <img src="/assets/hunter-portrait.webp" alt="" />
@@ -61,14 +144,20 @@
           <div class="tally-wall">
             <span class="eyebrow">SERVICE CORRIDOR 03 // NO EXIT</span>
             <h2 id="tally-title">ANOTHER FAILURE REMEMBERED</h2>
-            <div id="tally-marks" class="tally-marks" aria-label="Attempt tally marks"></div>
+            <div
+              id="tally-marks"
+              class="tally-marks"
+              aria-label="Attempt tally marks"
+            ></div>
             <p id="run-summary">MOON I // ATTEMPT 001</p>
-            <button id="restart-button" class="menu-button" type="button"><span>01</span> RISE AGAIN</button>
+            <button id="restart-button" class="menu-button" type="button">
+              <span>01</span> RISE AGAIN
+            </button>
           </div>
         </div>
       </section>
 
-      <div id="hud" class="hud hud--hidden" aria-live="polite">
+      <div id="hud" class="hud hud--hidden">
         <header class="moon-readout">
           <span id="moon-state">BLOOD MOON</span>
           <strong id="moon-label">MOON I</strong>
@@ -76,12 +165,26 @@
         </header>
         <div id="announcement" class="announcement" aria-hidden="true"></div>
         <div id="reward-feed" class="reward-feed" aria-live="polite"></div>
-        <div id="interact-prompt" class="interact-prompt" aria-hidden="true"></div>
-        <div id="hit-marker" class="hit-marker" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+        <div
+          id="interact-prompt"
+          class="interact-prompt"
+          aria-hidden="true"
+        ></div>
+        <div id="hit-marker" class="hit-marker" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </div>
+        <div class="crosshair" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><b></b>
+        </div>
 
         <aside class="blood-panel" aria-label="Blood health">
-          <div class="portrait-frame"><img id="portrait" src="/assets/hunter-portrait.webp" alt="The cursed hunter" /></div>
+          <div class="portrait-frame">
+            <img
+              id="portrait"
+              src="/assets/hunter-portrait.webp"
+              alt="The cursed hunter"
+            />
+          </div>
           <div class="blood-info">
             <span>BLOOD</span><strong id="blood-value">100</strong>
             <div class="blood-track"><i id="blood-fill"></i></div>
@@ -92,11 +195,15 @@
         </aside>
         <aside class="ammo-panel" aria-label="Weapon and ammunition">
           <span id="weapon-name">BLACKTHORN .45</span>
-          <strong><b id="ammo-value">12</b><i>/</i><small id="reserve-value">72</small></strong>
+          <strong
+            ><b id="ammo-value">12</b><i>/</i
+            ><small id="reserve-value">72</small></strong
+          >
           <em id="reload-state">1 · PISTOL</em>
         </aside>
         <footer class="status-ribbon">
-          <span id="best-moon">BEST MOON I</span><span id="speed-state">READY</span>
+          <span id="best-moon">BEST MOON I</span
+          ><span id="speed-state">READY</span>
         </footer>
       </div>
       <div id="damage-flash" aria-hidden="true"></div>

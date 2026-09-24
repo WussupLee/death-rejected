@@ -1,6 +1,11 @@
 import * as THREE from "three";
 
-export function damp(current: number, target: number, lambda: number, delta: number): number {
+export function damp(
+  current: number,
+  target: number,
+  lambda: number,
+  delta: number,
+): number {
   return THREE.MathUtils.lerp(current, target, 1 - Math.exp(-lambda * delta));
 }
 
@@ -12,7 +17,11 @@ export function clampLength2D(vector: THREE.Vector3, max: number): void {
   }
 }
 
-export function approach(current: number, target: number, amount: number): number {
+export function approach(
+  current: number,
+  target: number,
+  amount: number,
+): number {
   if (current < target) return Math.min(current + amount, target);
   return Math.max(current - amount, target);
 }

@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "assets": {
+    "blackthorn": {
+      "url": "assets/models/blackthorn.glb",
+      "source": "art-source/models/blackthorn.bbmodel",
+      "animations": [
+        "fire",
+        "reload"
+      ],
+      "triangles": 1224,
+      "bytes": 80568
+    },
+    "widowmaker": {
+      "url": "assets/models/widowmaker.glb",
+      "source": "art-source/models/widowmaker.bbmodel",
+      "animations": [
+        "fire",
+        "reload"
+      ],
+      "triangles": 1056,
+      "bytes": 71064
+    },
+    "knife": {
+      "url": "assets/models/knife.glb",
+      "source": "art-source/models/knife.bbmodel",
+      "animations": [
+        "slash"
+      ],
+      "triangles": 472,
+      "bytes": 54524
+    },
+    "thrall": {
+      "url": "assets/models/thrall.glb",
+      "source": "art-source/models/thrall.bbmodel",
+      "animations": [
+        "walk",
+        "attack",
+        "hurt",
+        "death",
+        "idle"
+      ],
+      "triangles": 1388,
+      "bytes": 85332
+    },
+    "stalker": {
+      "url": "assets/models/stalker.glb",
+      "source": "art-source/models/stalker.bbmodel",
+      "animations": [
+        "walk",
+        "attack",
+        "hurt",
+        "death",
+        "idle"
+      ],
+      "triangles": 1512,
+      "bytes": 79280
+    },
+    "hunter": {
+      "url": "assets/models/hunter.glb",
+      "source": "art-source/models/hunter.bbmodel",
+      "animations": [
+        "walk",
+        "attack",
+        "hurt",
+        "death",
+        "idle",
+        "scratch"
+      ],
+      "triangles": 2868,
+      "bytes": 114540
+    },
+    "storefront": {
+      "url": "assets/models/storefront.glb",
+      "source": "art-source/models/storefront.bbmodel",
+      "animations": [],
+      "triangles": 308,
+      "bytes": 49980
+    },
+    "pillar": {
+      "url": "assets/models/pillar.glb",
+      "source": "art-source/models/pillar.bbmodel",
+      "animations": [],
+      "triangles": 168,
+      "bytes": 40316
+    },
+    "fountain": {
+      "url": "assets/models/fountain.glb",
+      "source": "art-source/models/fountain.bbmodel",
+      "animations": [],
+      "triangles": 352,
+      "bytes": 43320
+    },
+    "escalator": {
+      "url": "assets/models/escalator.glb",
+      "source": "art-source/models/escalator.bbmodel",
+      "animations": [],
+      "triangles": 1180,
+      "bytes": 100132
+    },
+    "service-door": {
+      "url": "assets/models/service-door.glb",
+      "source": "art-source/models/service-door.bbmodel",
+      "animations": [],
+      "triangles": 168,
+      "bytes": 42444
+    },
+    "railing": {
+      "url": "assets/models/railing.glb",
+      "source": "art-source/models/railing.bbmodel",
+      "animations": [],
+      "triangles": 84,
+      "bytes": 36136
+    },
+    "debris": {
+      "url": "assets/models/debris.glb",
+      "source": "art-source/models/debris.bbmodel",
+      "animations": [],
+      "triangles": 56,
+      "bytes": 36192
+    }
+  }
+}

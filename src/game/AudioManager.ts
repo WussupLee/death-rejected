@@ -5,6 +5,31 @@ export class AudioManager {
   private drone: OscillatorNode | null = null;
   private lastBeat = 0;
   private combat = false;
+  private volume = 0.7;
+  private collapsed = false;
+  private intensity = "anticipation";
+  private beat = 0;
+  setVolume(value: number): void {
+    this.volume = value;
+    if (this.master && this.context)
+      this.master.gain.setTargetAtTime(
+        value * 0.65,
+        this.context.currentTime,
+        0.05,
+      );
+  }
+  setIntensity(value: string): void {
+    this.intensity = value;
+  }
+  setCollapsed(value: boolean): void {
+    this.collapsed = value;
+    if (this.master && this.context)
+      this.master.gain.setTargetAtTime(
+        value ? 0.02 : this.volume * 0.65,
+        this.context.currentTime,
+        0.3,
+      );
+  }
 
   async unlock(): Promise<void> {
     this.ensureContext();
@@ -14,15 +39,30 @@ export class AudioManager {
   setCombat(active: boolean): void {
     this.combat = active;
     if (!this.context || !this.ambience) return;
-    this.ambience.gain.setTargetAtTime(active ? 0.045 : 0.025, this.context.currentTime, 0.5);
+    this.ambience.gain.setTargetAtTime(
+      active ? 0.045 : 0.025,
+      this.context.currentTime,
+      0.5,
+    );
   }
 
   update(): void {
     if (!this.context || this.context.state !== "running") return;
-    const interval = this.combat ? 0.48 : 1.5;
+    if (this.collapsed) return;
+    const interval = this.combat ? 0.24 : 1.5;
     if (this.context.currentTime - this.lastBeat > interval) {
       this.lastBeat = this.context.currentTime;
-      if (this.combat) this.thump(48, 0.08, 0.075);
+      if (
+        this.combat &&
+        this.intensity !== "relief" &&
+        this.intensity !== "anticipation"
+      ) {
+        this.beat++;
+        if (this.beat % 4 === 0)
+          this.thump(this.beat % 16 === 0 ? 36 : 48, 0.22, 0.1);
+        if (this.intensity === "peak") this.noise(0.022, 0.035, 7500);
+        if (this.beat % 8 === 4) this.noise(0.07, 0.055, 1800);
+      }
     }
   }
 
@@ -74,7 +114,7 @@ export class AudioManager {
     if (this.context) return;
     this.context = new AudioContext();
     this.master = this.context.createGain();
-    this.master.gain.value = 0.46;
+    this.master.gain.value = this.volume * 0.65;
     this.master.connect(this.context.destination);
 
     this.ambience = this.context.createGain();
@@ -90,14 +130,23 @@ export class AudioManager {
     this.drone.start();
   }
 
-  private tone(start: number, end: number, duration: number, volume: number, type: OscillatorType): void {
+  private tone(
+    start: number,
+    end: number,
+    duration: number,
+    volume: number,
+    type: OscillatorType,
+  ): void {
     if (!this.context || !this.master) return;
     const time = this.context.currentTime;
     const oscillator = this.context.createOscillator();
     const gain = this.context.createGain();
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(start, time);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, end), time + duration);
+    oscillator.frequency.exponentialRampToValueAtTime(
+      Math.max(1, end),
+      time + duration,
+    );
     gain.gain.setValueAtTime(volume, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
     oscillator.connect(gain).connect(this.master);
@@ -112,7 +161,11 @@ export class AudioManager {
   private noise(duration: number, volume: number, cutoff: number): void {
     if (!this.context || !this.master) return;
     const length = Math.floor(this.context.sampleRate * duration);
-    const buffer = this.context.createBuffer(1, length, this.context.sampleRate);
+    const buffer = this.context.createBuffer(
+      1,
+      length,
+      this.context.sampleRate,
+    );
     const data = buffer.getChannelData(0);
     for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
     const source = this.context.createBufferSource();
