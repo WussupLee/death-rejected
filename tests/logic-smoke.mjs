@@ -306,6 +306,19 @@ test("head/body volumes, wall obstruction, per-swing melee hits, vertical range"
     "pillar blocks knife",
   );
   assert.equal(kills, 0);
+  enemies.clear();
+  enemies.spawn("stalker", vec(-15, 0, 12));
+  const stalker = enemies.pool.find((enemy) => enemy.alive);
+  stalker.position.set(12, 0, 10);
+  stalker.leapTime = 0.25;
+  stalker.actor.root.position.y = 0.4;
+  stalker.stagger = 1;
+  stalker.cooldown = 10;
+  enemies.update(0.1, vec(12, 0, 12), false);
+  assert.equal(stalker.leapTime, 0.25, "paused pounce freezes");
+  for (let i = 0; i < 60; i++) enemies.update(1 / 120, vec(12, 0, 12), true);
+  assert.equal(stalker.leapTime, 0, "staggered pounce completes");
+  assert.equal(stalker.actor.root.position.y, 0, "interrupted pounce lands");
 });
 test("Roman numerals", () =>
   assert.deepEqual([1, 4, 5, 9, 10].map(toRoman), ["I", "IV", "V", "IX", "X"]));

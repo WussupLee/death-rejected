@@ -179,6 +179,16 @@ export class EnemySystem {
       }
       if (!active) continue;
       e.cooldown -= dt;
+      // Land even when an attack, stagger or close-range hold interrupts pursuit.
+      if (e.leapTime > 0) {
+        e.leapTime = Math.max(0, e.leapTime - dt);
+        e.actor.root.position.y =
+          e.leapTime > 0
+            ? Math.sin((1 - e.leapTime / 0.65) * Math.PI) * 0.55
+            : 0;
+        if (e.leapTime === 0 && e.attackTime < 0 && e.stagger <= 0)
+          e.actor.play("walk");
+      }
       const wasStaggered = e.stagger > 0;
       e.stagger = Math.max(0, e.stagger - dt);
       if (wasStaggered && e.stagger === 0) e.actor.play("walk");
@@ -289,14 +299,7 @@ export class EnemySystem {
       }
       let speed = e.speed;
       if (e.leapTime > 0) {
-        e.leapTime = Math.max(0, e.leapTime - dt);
         speed = e.leapTime > 0.42 ? 0 : e.speed * 2.6;
-        e.actor.root.position.y =
-          Math.sin((1 - e.leapTime / 0.65) * Math.PI) * 0.55;
-        if (e.leapTime === 0) {
-          e.actor.root.position.y = 0;
-          e.actor.play("walk");
-        }
       }
       const next = e.position
         .clone()

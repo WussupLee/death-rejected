@@ -16,6 +16,7 @@ The previous V2 implementation was materially short of the supplied plan. Its le
 - One pillar initially intersected the new ramp. All-pillar route tests caught it and the authored/collision placements were corrected together.
 - The first combat soak found side-entry stalls at both escalators. Navigation had accepted an edge that collision could not traverse. Tightening the wedge tolerance and waypoint following fixed the defect; both observed positions are permanent regression cases.
 - Stalker “leaps” lasted only one frame. Pounces now have a tell and a sustained, collision-constrained movement window.
+- Pounce landing now completes during stagger or a close-range attack, preventing an interrupted Stalker from hanging above the floor.
 - Enemy death was immediate disappearance. Corpses now animate briefly and return to the pool.
 - Existing save values were unversioned and could admit non-finite/fractional data. Migration preserves attempts/best Moon and sanitizes invalid values.
 - Render quality mainly capped device pixel ratio, which did little at 1x displays. Quality now scales the actual render resolution and multiple effect budgets.
