@@ -144,7 +144,9 @@ try {
   assert.equal((await snapshot()).weapon.reloading, true);
   checks.push("reload remains frozen while paused");
   await page.locator("#resume-button").click();
-  await page.waitForTimeout(1200);
+  await page.waitForFunction(
+    () => !window.__deathRejected.getSnapshot().weapon.reloading,
+  );
   await page.evaluate(() => {
     const t = window.__deathRejected.test;
     t.player.position.copy(t.environment.shopPosition);
