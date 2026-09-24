@@ -4,7 +4,7 @@ const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
 const browser = await chromium.launch({
-  headless: true,
+  headless: process.env.HEADED !== "1",
   channel:
     process.env.BROWSER_CHANNEL ||
     (process.platform === "win32" ? "msedge" : undefined),
@@ -68,7 +68,11 @@ try {
   checks.push("sprint, slide, jump inputs move the player");
   const beforeYaw = (await snapshot()).player.yaw;
   await page.mouse.move(5000, 450);
-  await page.waitForTimeout(100);
+  await page.waitForFunction(
+    (yaw) =>
+      Math.abs(window.__deathRejected.getSnapshot().player.yaw - yaw) > 6.28,
+    beforeYaw,
+  );
   const afterYaw = (await snapshot()).player.yaw;
   assert.ok(Math.abs(afterYaw - beforeYaw) > 6.28);
   checks.push("unrestricted mouse rotation exceeds 360 degrees");
