@@ -10,7 +10,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "tsc --noEmit && node tests/logic-smoke.mjs && node tests/assets.mjs && vite build",
+    "test": "tsc --noEmit && node tests/logic-smoke.mjs && node tests/assets.mjs && vite build && node tests/site-package.mjs",
     "test:browser": "node tests/browser-smoke.mjs",
     "test:soak": "node tests/browser-soak.mjs",
     "assets:bake": "node tools/bake-ao.mjs",
