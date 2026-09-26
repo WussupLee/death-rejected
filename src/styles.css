@@ -1031,3 +1031,370 @@ html[data-quality="performance"] #screen-fx {
   letter-spacing: 0.06em;
   margin-top: 25px;
 }
+
+/* Landscape touch layout: information above, thumbs below, sights unobstructed. */
+#touch-controls,
+#rotate-prompt {
+  display: none;
+}
+html[data-input="touch"] {
+  overscroll-behavior: none;
+}
+html[data-input="touch"] #game-shell {
+  height: 100dvh;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+html[data-input="touch"] button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+html[data-input="touch"] #touch-controls:not([hidden]) {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+#touch-look {
+  position: absolute;
+  inset: 0 0 0 34%;
+  pointer-events: auto;
+  touch-action: none;
+}
+#touch-stick {
+  position: absolute;
+  left: max(28px, env(safe-area-inset-left));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  width: clamp(108px, 28vh, 148px);
+  height: clamp(108px, 28vh, 148px);
+  border: 1px solid #d5cbb75c;
+  border-radius: 50%;
+  background: #16100f5c;
+  pointer-events: auto;
+  touch-action: none;
+  display: grid;
+  place-items: center;
+}
+#touch-stick i {
+  width: 40%;
+  height: 40%;
+  border: 1px solid #e9dfcc9c;
+  border-radius: 50%;
+  background: #b5a68e47;
+}
+#touch-stick span {
+  position: absolute;
+  top: -20px;
+  width: 150px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  color: #d5cbb7;
+  text-shadow: 0 1px 3px #000;
+}
+#touch-stick.sprinting {
+  border-color: #c84250;
+  background: #7a14283d;
+}
+#touch-controls button {
+  pointer-events: auto;
+  touch-action: none;
+  min-width: 46px;
+  min-height: 46px;
+  border: 1px solid #bdaf9580;
+  background: #130f0ec4;
+  color: #ece0c9;
+  border-radius: 7px;
+  font:
+    700 10px Arial,
+    sans-serif;
+  letter-spacing: 0.06em;
+  padding: 7px;
+}
+#touch-controls button.held,
+#touch-controls button[aria-pressed="true"] {
+  background: #791928c9;
+  border-color: #f0c9ba;
+}
+#touch-controls [hidden] {
+  display: none !important;
+}
+.touch-actions {
+  position: absolute;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: 54px 68px 54px;
+  grid-template-rows: 46px 64px 46px;
+  gap: 7px;
+}
+#touch-fire {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  border-radius: 30px !important;
+  background: #66142699 !important;
+  font-size: 13px !important;
+}
+#touch-knife {
+  grid-column: 1;
+  grid-row: 2;
+}
+#touch-jump {
+  grid-column: 3;
+  grid-row: 2;
+}
+#touch-slide {
+  grid-column: 3;
+  grid-row: 3;
+}
+#touch-pause {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  font-size: 18px !important;
+}
+#touch-fullscreen {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: calc(max(10px, env(safe-area-inset-right)) + 54px);
+}
+#touch-use {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+}
+
+html[data-input="touch"] .blood-panel {
+  top: max(8px, env(safe-area-inset-top));
+  bottom: auto;
+  left: max(10px, env(safe-area-inset-left));
+  width: 135px;
+  min-height: 58px;
+  clip-path: none;
+}
+html[data-input="touch"] .portrait-frame {
+  width: 45px;
+  height: 51px;
+  flex-shrink: 0;
+}
+html[data-input="touch"] .blood-info {
+  padding: 5px 8px;
+}
+html[data-input="touch"] .blood-info strong {
+  font-size: 25px;
+}
+html[data-input="touch"] .blood-track {
+  margin-top: 4px;
+  height: 4px;
+}
+html[data-input="touch"] .ammo-panel {
+  top: calc(max(8px, env(safe-area-inset-top)) + 48px);
+  bottom: auto;
+  right: max(10px, env(safe-area-inset-right));
+  width: 160px;
+  min-height: 52px;
+  padding: 5px 8px;
+  clip-path: none;
+}
+html[data-input="touch"] .ammo-panel strong {
+  font-size: 29px;
+  line-height: 1;
+}
+html[data-input="touch"] .ammo-panel > span {
+  font-size: 8px;
+  letter-spacing: 0.07em;
+}
+html[data-input="touch"] .ammo-panel em {
+  font-size: 8px;
+}
+html[data-input="touch"] .moon-readout {
+  top: max(7px, env(safe-area-inset-top));
+  padding: 4px 15px;
+  min-width: 130px;
+}
+html[data-input="touch"] .moon-readout strong {
+  font-size: 21px;
+}
+html[data-input="touch"] .marks-panel {
+  left: max(16px, env(safe-area-inset-left));
+  top: calc(max(8px, env(safe-area-inset-top)) + 65px);
+  bottom: auto;
+  min-width: 90px;
+  transform: none;
+  text-align: left;
+}
+html[data-input="touch"] .marks-panel::before,
+html[data-input="touch"] .status-ribbon {
+  display: none;
+}
+html[data-input="touch"] .marks-panel strong {
+  font-size: 22px;
+}
+html[data-input="touch"] .announcement {
+  top: 25%;
+  padding: 8px 12px;
+  min-width: 240px;
+}
+html[data-input="touch"] .announcement strong {
+  font-size: 27px;
+}
+html[data-input="touch"] .announcement span {
+  font-size: 8px;
+  letter-spacing: 0.15em;
+}
+html[data-input="touch"] .reward-feed {
+  bottom: 55px;
+  max-width: 35%;
+}
+html[data-input="touch"] .reward-feed div {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+html[data-input="touch"] .interact-prompt {
+  bottom: 80px;
+  max-width: 42%;
+  padding: 6px;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+html[data-input="touch"] .interact-prompt kbd {
+  display: none;
+}
+html[data-input="touch"] .interact-prompt b {
+  margin-left: 5px;
+}
+html[data-input="touch"] .title-lockup {
+  left: max(28px, env(safe-area-inset-left));
+  width: 65%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+html[data-input="touch"] .title-lockup h1 {
+  margin: 8px 0;
+}
+html[data-input="touch"] .title-lockup h1 span {
+  font-size: clamp(42px, 15vh, 80px);
+}
+html[data-input="touch"] .title-lockup h1 i {
+  font-size: clamp(37px, 13vh, 70px);
+}
+html[data-input="touch"] .menu-code {
+  top: 0;
+  font-size: 8px;
+  margin: 0 0 12px;
+}
+html[data-input="touch"] .menu-tagline {
+  margin: 12px 0 8px;
+  font-size: 13px;
+}
+html[data-input="touch"] .menu-button {
+  min-height: 44px;
+  font-size: 12px;
+}
+html[data-input="touch"] .title-lockup small {
+  font-size: 7px;
+  margin-top: 6px;
+}
+html[data-input="touch"] .pause-card {
+  padding: 16px;
+}
+html[data-input="touch"] .pause-card h2 {
+  font-size: 44px;
+}
+html[data-input="touch"] .pause-card .menu-button {
+  margin-top: 7px;
+}
+html[data-input="touch"] #settings-screen {
+  padding: max(14px, env(safe-area-inset-top))
+    max(30px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom))
+    max(30px, env(safe-area-inset-left));
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+html[data-input="touch"] #settings-screen h2 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+html[data-input="touch"] .settings-row {
+  min-height: 46px;
+  font-size: 10px;
+}
+html[data-input="touch"] .settings-row input {
+  min-height: 44px;
+}
+html[data-input="touch"] #controls-help {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 12px 0;
+  max-width: 620px;
+}
+html[data-input="touch"] #settings-back {
+  margin-top: 8px;
+}
+html[data-input="touch"] .tally-wall {
+  top: 6%;
+  right: max(18px, env(safe-area-inset-right));
+  width: 48%;
+  padding: 10px;
+  max-height: 88%;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+html[data-input="touch"] .tally-wall h2 {
+  font-size: 26px;
+  margin: 10px 0;
+}
+html[data-input="touch"] .tally-marks {
+  min-height: 48px;
+  max-height: 80px;
+  overflow: hidden;
+  padding: 8px;
+}
+html[data-input="touch"] .tally-wall p,
+html[data-input="touch"] .tally-wall .eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.09em;
+}
+@media (orientation: portrait) {
+  html[data-input="touch"] #rotate-prompt {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background: #0b080a;
+    color: #e9dfcc;
+    text-align: center;
+    padding: 30px;
+  }
+  #rotate-prompt strong {
+    font:
+      36px Impact,
+      sans-serif;
+    color: #c63d4b;
+  }
+  #rotate-prompt p {
+    font:
+      italic 20px Georgia,
+      serif;
+  }
+  #rotate-prompt small {
+    color: #aea18f;
+  }
+}
+@media (max-height: 340px) and (orientation: landscape) {
+  html[data-input="touch"] .menu-tagline,
+  html[data-input="touch"] .title-lockup small {
+    display: none;
+  }
+  .touch-actions {
+    grid-template-rows: 44px 50px 44px;
+    gap: 4px;
+  }
+}

@@ -15,6 +15,7 @@ import { CombatEffects } from "./CombatEffects";
 import { TallyScene } from "./TallyScene";
 import { FixedSimulation, killReward } from "./Simulation";
 import type { AssetLibrary } from "./AssetLibrary";
+import { TouchControls, isTouchDevice } from "./TouchControls";
 
 export class Game implements GameEvents {
   private readonly scene = new THREE.Scene();
@@ -46,6 +47,7 @@ export class Game implements GameEvents {
   private frameMs = 0;
   private isNearShop = false;
   private captureRequest = 0;
+  private readonly touch: TouchControls;
 
   constructor(assets: AssetLibrary) {
     const canvas = document.getElementById("game-canvas");
@@ -55,7 +57,7 @@ export class Game implements GameEvents {
     this.tallyScene = new TallyScene(assets);
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: !isTouchDevice(),
       powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -93,6 +95,15 @@ export class Game implements GameEvents {
       (moon, reward) => this.onMoonCleared(moon, reward),
     );
 
+    this.touch = new TouchControls(
+      this.player,
+      this.weapons,
+      () => {
+        if (["playing", "intermission"].includes(this.phase))
+          this.setPhase("paused");
+      },
+      () => this.useShop(),
+    );
     this.buildLighting();
     this.environment.captureReflections(this.renderer);
     this.bindActions();
@@ -123,8 +134,9 @@ export class Game implements GameEvents {
           yaw: Number(this.player.lookYaw.toFixed(3)),
           pitch: Number(this.player.lookPitch.toFixed(3)),
         },
-        mouseMode:
-          document.pointerLockElement === this.canvas
+        mouseMode: this.touch.available
+          ? "touch"
+          : document.pointerLockElement === this.canvas
             ? "pointer-lock"
             : this.player.fallbackLookEnabled
               ? "preview-fallback"
@@ -306,7 +318,7 @@ export class Game implements GameEvents {
   private die(): void {
     if (this.phase === "dying" || this.phase === "tally") return;
     this.captureRequest++;
-    document.exitPointerLock();
+    document.exitPointerLock?.();
     this.setPhase("dying");
     this.deathTimer = 2.6;
     this.audio.setCombat(false);
@@ -332,6 +344,7 @@ export class Game implements GameEvents {
     const active = phase === "playing" || phase === "intermission";
     this.player.enabled = active;
     this.weapons.enabled = active;
+    this.touch.setActive(active);
     if (!active) {
       this.player.clearInput();
       this.weapons.clearInput();
@@ -349,6 +362,7 @@ export class Game implements GameEvents {
   private updateShopPrompt(): void {
     this.isNearShop =
       this.environment.distanceToShop(this.player.position) < 5.4;
+    this.touch.setShopAvailable(this.isNearShop);
     if (!this.isNearShop) {
       this.ui.setInteract(null);
       return;
@@ -370,7 +384,13 @@ export class Game implements GameEvents {
       }
       this.marks -= 450;
       this.weapons.purchaseShotgun();
-      this.ui.announce("WIDOWMAKER 12G", "PURCHASED // PRESS 2 TO EQUIP", 2.2);
+      this.ui.announce(
+        "WIDOWMAKER 12G",
+        this.touch.available
+          ? "PURCHASED // TAP SWAP TO CHANGE WEAPONS"
+          : "PURCHASED // PRESS 2 TO EQUIP",
+        2.2,
+      );
       return;
     }
     if (this.marks < 120) {
@@ -474,10 +494,12 @@ export class Game implements GameEvents {
         this.captureMouse();
     });
     document.addEventListener("pointerlockerror", () => {
+      if (this.touch.available) return;
       if (["playing", "intermission"].includes(this.phase))
         this.activatePreviewLook();
     });
     document.addEventListener("pointerlockchange", () => {
+      if (this.touch.available) return;
       if (!this.pointerLockAvailable) return;
       const locked = document.pointerLockElement === this.canvas;
       if (locked) {
@@ -497,23 +519,24 @@ export class Game implements GameEvents {
       ) {
         this.captureRequest++;
         if (document.pointerLockElement === this.canvas)
-          document.exitPointerLock();
+          document.exitPointerLock?.();
         else this.setPhase("paused");
       }
     });
     window.addEventListener("blur", () => {
       if (["playing", "intermission"].includes(this.phase)) {
-        document.exitPointerLock();
+        document.exitPointerLock?.();
         this.setPhase("paused");
       }
     });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && ["playing", "intermission"].includes(this.phase)) {
-        document.exitPointerLock();
+        document.exitPointerLock?.();
         this.setPhase("paused");
       }
     });
     window.addEventListener("resize", () => this.resize());
+    window.visualViewport?.addEventListener("resize", () => this.resize());
   }
 
   private get pointerLockAvailable(): boolean {
@@ -524,6 +547,14 @@ export class Game implements GameEvents {
   }
 
   private captureMouse(): void {
+    if (this.touch.available) {
+      this.player.fallbackLookEnabled = false;
+      this.canvas.dataset.mouseMode = "touch";
+      void this.audio.unlock();
+      if (innerHeight > innerWidth) this.setPhase("paused");
+      else if (this.phase === "paused") this.setPhase(this.playPhase);
+      return;
+    }
     const requestId = ++this.captureRequest;
     const fallback = () => {
       if (

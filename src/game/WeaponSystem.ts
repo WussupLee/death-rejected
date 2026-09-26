@@ -415,6 +415,13 @@ export class WeaponSystem {
     this.triggerHeld = false;
     this.aimHeld = false;
   }
+  setTrigger(held: boolean): void {
+    this.triggerHeld = held && this.enabled;
+    if (this.triggerHeld) this.fire();
+  }
+  setAim(held: boolean): void {
+    this.aimHeld = held && this.enabled;
+  }
   private buildModels(): void {
     for (const [index, id] of ["blackthorn", "widowmaker", "knife"].entries()) {
       const actor = this.assets.create(id);

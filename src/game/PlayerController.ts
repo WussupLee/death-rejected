@@ -17,6 +17,8 @@ export class PlayerController {
   isCrouching = false;
 
   private readonly keys = new Set<string>();
+  private touchX = 0;
+  private touchY = 0;
   private slideTime = 0;
   private eyeHeight: number = WORLD.standingHeight;
   private bobTime = 0;
@@ -77,11 +79,18 @@ export class PlayerController {
     }
 
     const forwardAmount =
-      (this.isDown("KeyW") ? 1 : 0) - (this.isDown("KeyS") ? 1 : 0);
+      (this.isDown("KeyW") ? 1 : 0) -
+      (this.isDown("KeyS") ? 1 : 0) +
+      this.touchY;
     const sideAmount =
-      (this.isDown("KeyD") ? 1 : 0) - (this.isDown("KeyA") ? 1 : 0);
+      (this.isDown("KeyD") ? 1 : 0) -
+      (this.isDown("KeyA") ? 1 : 0) +
+      this.touchX;
     const hasInput = forwardAmount !== 0 || sideAmount !== 0;
-    const sprinting = this.isDown("ShiftLeft") || this.isDown("ShiftRight");
+    const sprinting =
+      this.isDown("ShiftLeft") ||
+      this.isDown("ShiftRight") ||
+      this.touchY > 0.8;
 
     this.forward.set(
       -Math.sin(this.yaw.rotation.y),
@@ -283,8 +292,24 @@ export class PlayerController {
 
   clearInput(): void {
     this.keys.clear();
+    this.touchX = this.touchY = 0;
     this.fallbackEdgeX = 0;
     this.fallbackEdgeY = 0;
+  }
+
+  setTouchMovement(x: number, y: number): void {
+    this.touchX = x;
+    this.touchY = y;
+  }
+
+  touchLook(dx: number, dy: number): void {
+    if (!this.enabled) return;
+    this.yaw.rotation.y -= dx * 0.0045 * this.sensitivity;
+    this.pitch.rotation.x = THREE.MathUtils.clamp(
+      this.pitch.rotation.x - dy * 0.004 * this.sensitivity,
+      -1.48,
+      1.48,
+    );
   }
 
   private isDown(code: string): boolean {
