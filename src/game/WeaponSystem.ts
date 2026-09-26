@@ -461,7 +461,7 @@ export class WeaponSystem {
 
   private bindInput(): void {
     this.canvas.addEventListener("mousedown", (event) => {
-      if (!this.enabled) return;
+      if (!this.enabled || this.canvas.dataset.mouseMode === "touch") return;
       if (event.button === 0) {
         this.triggerHeld = true;
         this.fire();
